@@ -1,0 +1,115 @@
+
+/* Styling the html elements */
+h1 {
+    color: white;
+    text-align: center;
+}
+
+body {
+    background-color: lightblue;
+    margin-left: 160px;
+    padding: 0px 10px;
+    color: black;
+
+    /* animation-duration: 1.3s;
+    animation: linkScale;
+    animation-direction: alternate;
+    animation-name: backgroundChange;
+    animation-timing-function: ease; */
+}
+
+p {
+    font-family: verdana;
+    font-size: 20px;
+}
+
+footer {
+    font-family: verdana;
+    font-size: 10px;
+
+    p {
+        font-family: verdana;
+        font-size: 12px;
+    }
+}
+
+
+
+/* The sidebar menu */
+.sidenav {
+    height: 100%; /* Full-height: remove this if you want "auto" height */
+    width: 160px; /* Set the width of the sidebar */
+    position: fixed; /* Fixed Sidebar (stay in place on scroll) */
+    z-index: 1; /* Stay on top */
+    top: 0; /* Stay at the top */
+    left: 0;
+    background-color: #111; /* Black */
+    overflow-x: hidden; /* Disable horizontal scroll */
+    padding-top: 20px;
+}
+
+/* The navigation menu links */
+.sidenav a {
+    padding: 6px 8px 6px 16px;
+    text-decoration: none;
+    font-size: 25px;
+    color: #818181;
+    display: block;
+}
+
+
+@keyframes bounce {
+    0%   { transform: translateY(0); }
+    50%  { transform: translateY(-50px); }
+    100% { transform: translateY(0); }
+}
+
+/* Define a keyframe animation */
+@keyframes linkChange {
+    0% { color: #818181; }
+    100% { color: #f1f1f1; }
+}
+
+@keyframes backgroundChange {
+    0% { background-color: lightblue; }
+    /* 100% { background-image: url("TestBackground1.png");   background-color: transparent; background-color: black;   } */
+    100% { background-color: black; }
+    /* 100% { background-image: linear-gradient(to bottom, transparent, #837960), url("TestBackground1.png");   } */
+}
+
+/* When you mouse over the navigation links, change their color */
+.sidenav a:hover {
+    color: #f1f1f1;
+    animation: linkScale 1.3s ease-in-out;
+    /*background-color: blue;*/
+    animation-name: linkChange;
+    animation-timing-function: ease;
+}
+  
+/* Style page content */
+.main {
+    margin-left: 160px; /* Same as the width of the sidebar */
+    padding: 0px 10px;
+}
+  
+/* On smaller screens, where height is less than 450px, change the style of the sidebar (less padding and a smaller font size) */
+@media screen and (max-height: 450px) {
+    .sidenav {padding-top: 15px;}
+    .sidenav a {font-size: 18px;}
+}
+
+/* body:has(div a:hover) {
+    animation: linkScale;
+    animation-fill-mode: forwards;
+    animation-duration: 1.3s;
+    animation-name: backgroundChange;
+    animation-timing-function: ease-in-out;
+} */
+
+/* body:has(div a:not:hover) {
+    animation-duration: 1.3s;
+    animation: linkScale;
+    animation-direction: alternate;
+    animation-name: backgroundChange;
+    animation-timing-function: ease;
+} */
