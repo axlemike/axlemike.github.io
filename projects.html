@@ -17,10 +17,12 @@
             <ul>
                 <div class="sidenav">
                     <li><a href="index.html">Home</a></li>
+                    <li><a href="blog.html">Blog</a></li>
                     <li><a href="about.html">About</a></li>
                     <li><a href="resume.html">Resume</a></li>
                     <li><a href="projects.html">Projects</a></li>
                     <li><a href="contact.html">Contact</a></li>
+                    <li><a href="credits.html">Credits</a></li>
                 </div>  
             </ul>
         </nav>
@@ -30,20 +32,71 @@
         <div id="inner">
             <br/>
             <h1>GitHub</h1>
+            <li><a href="https://github.com/axlemike">GitHub</a></li>
             <br/>
 
+
             <h1>Shadertoys</h1>
-            <br/>
-            <iframe width="640" height="360" frameborder="0" src="https://www.shadertoy.com/embed/lst3W2?gui=true&t=10&paused=true&muted=false" allowfullscreen></iframe>
-            <br/>
-            <iframe width="640" height="360" frameborder="0" src="https://www.shadertoy.com/embed/4tVSzz?gui=true&t=10&paused=true&muted=false" allowfullscreen></iframe>
-            <br/>
-            <iframe width="640" height="360" frameborder="0" src="https://www.shadertoy.com/embed/XtK3Rt?gui=true&t=10&paused=true&muted=false" allowfullscreen></iframe>
-            <br/>
-            <iframe width="640" height="360" frameborder="0" src="https://www.shadertoy.com/embed/4ltGD8?gui=true&t=10&paused=true&muted=false" allowfullscreen></iframe>
-            <br/>
-            <iframe width="640" height="360" frameborder="0" src="https://www.shadertoy.com/embed/ltGXRV?gui=true&t=10&paused=true&muted=false" allowfullscreen></iframe>
-            <br/>
+            <!-- <button type="button" class="collapsible">Shadertoys</button>
+            <div class="Shadertoys"> -->
+
+                <button type="button" class="collapsible">Shadertris</button>
+                <div class="IndividualShaderToy">
+                    <iframe width="640" height="360" frameborder="0" src="https://www.shadertoy.com/embed/lst3W2?gui=true&t=10&paused=true&muted=false" allowfullscreen=></iframe>
+                    <br/>
+                    <br/>
+                    <br/>
+                </div> 
+
+                <button type="button" class="collapsible">Open Sign</button>
+                <div class="IndividualShaderToy">
+                    <iframe width="640" height="360" frameborder="0" src="https://www.shadertoy.com/embed/4tVSzz?gui=true&t=10&paused=true&muted=false" allowfullscreen></iframe>
+                    <br/>
+                    <br/>
+                    <br/>
+                </div>
+
+                <button type="button" class="collapsible">Silly Spiral</button>
+                <div class="IndividualShaderToy">
+                    <iframe width="640" height="360" frameborder="0" src="https://www.shadertoy.com/embed/XtK3Rt?gui=true&t=10&paused=true&muted=false" allowfullscreen></iframe>
+                    <br/>
+                    <br/>
+                    <br/>
+                </div>
+
+                <button type="button" class="collapsible">Bomberman</button>
+                <div class="IndividualShaderToy">
+                    <iframe width="640" height="360" frameborder="0" src="https://www.shadertoy.com/embed/4ltGD8?gui=true&t=10&paused=true&muted=false" allowfullscreen></iframe>
+                    <br/>
+                    <br/>
+                    <br/>
+                </div>
+
+                <button type="button" class="collapsible">Parallax Mapping Comparision</button>
+                <div class="IndividualShaderToy">
+                    <iframe width="640" height="360" frameborder="0" src="https://www.shadertoy.com/embed/ltGXRV?gui=true&t=10&paused=true&muted=false" allowfullscreen></iframe>
+                    <br/>
+                    <br/>
+                    <br/>
+                </div>
+
+                <button type="button" class="collapsible">Simple Shadowmap</button>
+                <div class="IndividualShaderToy">
+                    <iframe width="640" height="360" frameborder="0" src="https://www.shadertoy.com/embed/MlyXR1?gui=true&t=10&paused=true&muted=false" allowfullscreen></iframe>
+                    <br/>
+                    <br/>
+                    <br/>
+                </div>
+
+                <button type="button" class="collapsible">Parallax Scrolling Star Field </button>
+                <div class="IndividualShaderToy">
+                    <iframe width="640" height="360" frameborder="0" src="https://www.shadertoy.com/embed/XtjSDh?gui=true&t=10&paused=true&muted=false" allowfullscreen></iframe>
+                    <br/>
+                    <br/>
+                    <br/>
+                </div>
+
+            <!-- </div>         -->
         </div>
     </div>
     <!-- Footer section -->
@@ -59,3 +112,28 @@
     </footer>
 </body>
 </html>
+
+<script>
+    var coll = document.getElementsByClassName("collapsible");
+
+    var totalHeight = 0;
+
+    for (var i = 0; i < coll.length; ++i)
+    {
+        coll[i].addEventListener("click", function()
+        {
+            this.classList.toggle("active");
+            var content = this.nextElementSibling;
+
+            if (content.style.maxHeight)
+            {
+                content.style.maxHeight = null;
+            }
+            else
+            {
+                content.style.maxHeight += content.scrollHeight + "px";
+            }
+        });
+    }
+ </script>
+
