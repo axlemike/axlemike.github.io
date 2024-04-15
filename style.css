@@ -202,3 +202,52 @@ footer {
     background-color: #ccc;
     color: #101010;
   }
+
+
+/* Style the collapsible content. Note: hidden by default */
+.SidebarButton {
+    padding: 0 18px;
+    background-color: #010101;
+    overflow: hidden;
+    transition-timing-function: ease;
+    transition: opacity 0.2s ease-out;
+}
+
+/* Style the button that is used to open and close the collapsible content */
+.sidebarAbout {
+    background-color: #303030;
+    color: #888888;
+    cursor: pointer;
+    padding: 18px;
+    width: 100%;
+    border: none;
+    text-align: left;
+    outline: none;
+    font-size: 15px;
+  }
+  
+  /* Add a background color to the button if it is clicked on (add the .active class with JS), and when you move the mouse over it (hover) */
+  .active, .sidebarAbout:hover {
+    background-color: #ccc;
+    color: #101010;
+  }
+
+  /* Style the button that is used to open and close the collapsible content */
+.sidebarExperience {
+    background-color: #303030;
+    color: #888888;
+    cursor: pointer;
+    padding: 18px;
+    width: 100%;
+    border: none;
+    text-align: left;
+    outline: none;
+    font-size: 15px;
+  }
+  
+  /* Add a background color to the button if it is clicked on (add the .active class with JS), and when you move the mouse over it (hover) */
+  .active, .sidebarExperience:hover {
+    background-color: #ccc;
+    color: #101010;
+  }
+

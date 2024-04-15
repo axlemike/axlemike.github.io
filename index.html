@@ -23,11 +23,23 @@
                     <li><a href="projects.html">Projects</a></li>
                     <li><a href="contact.html">Contact</a></li>
                     <li><a href="credits.html">Credits</a></li>
-                </div>    
+
+
+                    <button type="button" class="sidebarAbout">About</button>
+                    <div class="SidebarButton">
+                        <br/>
+                    </div> 
+
+                    <button type="button" class="sidebarExperience">Experience</button>
+                    <div class="SidebarButton">
+                        <br/>
+                    </div> 
+                </div>  
             </ul>
         </nav>
     </header>
     <p>Welcome to my online portfolio.</p>
+    <p id="PageTitle"></p>
     <!-- Footer section -->
     <footer>
         <br/>
@@ -41,3 +53,62 @@
     </footer>
 </body>
 </html>
+
+<script>
+    function RemoveDynamicElements()
+    {
+        const element = document.getElementById("DynamicGeneratedText");
+        if (element)
+        {
+            element.remove();
+        }
+    }
+
+    function ChangePageTitle(pageTitle)
+    {
+        const element = document.getElementById("PageTitle");
+        if (element)
+        {
+            element.innerHTML = pageTitle;
+        }
+    }
+
+    window.onload = function()
+    {
+        ChangePageTitle("Welcome");
+    };
+
+    var coll = document.getElementsByClassName("sidebarAbout");
+    for (var i = 0; i < coll.length; ++i)
+    {
+        coll[i].addEventListener("click", function()
+        {
+            // const element = document.getElementById("PageTitle");
+            // if (element)
+            // {
+            //     while (element.opacity > 0)
+            //     {
+            //         element.opacity -= 0.1;
+            //     }
+            // }
+ 
+            RemoveDynamicElements();
+
+            ChangePageTitle("About");
+
+            let html = "<p id=\"DynamicGeneratedText\">My new paragraph.</p>";
+            pageTitle.insertAdjacentHTML("afterend", html);
+        });
+    }
+
+    var coll = document.getElementsByClassName("sidebarExperience");
+    for (var i = 0; i < coll.length; ++i)
+    {
+        coll[i].addEventListener("click", function()
+        {
+            RemoveDynamicElements();
+
+            ChangePageTitle("Experience");
+        });
+    }
+</script>
