@@ -47,19 +47,19 @@
     <!-- <iframe src='https://1drv.ms/w/s!Al5QdoSxmipahIhxPq_mcun1oU_Bbw' width='1366px' height='1023px' frameborder='0'>This is an embedded <a target='_blank' href='http://office.com'>Microsoft Office</a> document, powered by <a target='_blank' href='http://office.com/webapps'>Office Online</a>.</iframe>
     
      -->
-    <button type="button" class="resumeCollapsible">Skills</button>
+    <div class="resumeHeader">About</div>
     <div class="ResumeEntry">
         <br/>
         <li><resume>Team leadership and communication.</resume></li>
         <li><resume>Proficient in C++, C, C#, HLSL and GLSL programming languages.</resume></li>
         <li><resume>Experience with DirectX, Vulkan, GDK/XDK, Unreal, OpenGL, PIX, Razor, RenderDoc, Perforce, Git, ImGui, Bink, Scaleform/Scaleform Video, XNA, C++/CLI, Objective-C, Havok Vision Engine, Unity, iOS, LUA/Swig, 68000 assembly, MYSQL and Python.</resume></li>
         <br/>
-    </div> 
+    </div>
 
-    <button type="button" class="resumeCollapsible">Experience</button>
+    <div class="resumeHeader">Experience</div>
     <div class="ResumeEntry">
         <br/>
-    </div> 
+    </div>
     
     <!-- Footer section -->
     <footer>
@@ -76,26 +76,3 @@
 </html>
 
     <script src="sidebar.js"></script>
-
-
-<script>
-    var coll = document.getElementsByClassName("resumeCollapsible");
-
-    for (var i = 0; i < coll.length; ++i)
-    {
-        coll[i].addEventListener("click", function()
-        {
-            this.classList.toggle("active");
-            var content = this.nextElementSibling;
-
-            if (content.style.maxHeight)
-            {
-                content.style.maxHeight = null;
-            }
-            else
-            {
-                content.style.maxHeight = content.scrollHeight + "px";
-            }
-        });
-    }
- </script>
