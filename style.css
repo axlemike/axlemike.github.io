@@ -280,9 +280,32 @@ footer {
     margin-bottom: 14px; /* increased spacing between sidebar links */
 }
 
-.active, .sidebarLink:hover {
-        background-color: #ccc;
-        color: #101010;
+/* Hover state for sidebar links */
+.sidebarLink:hover {
+    background-color: #ccc;
+    color: #101010;
+}
+
+/* Active (current page) sidebar state — distinct from hover */
+.sidebarLink.active {
+    background-color: #3a3a3a;
+    color: #f1f1f1;
+    font-weight: 400;
+}
+
+/* Keep active link color stable on hover */
+.sidebarLink.active:hover {
+    background-color: #3a3a3a;
+    color: #f1f1f1;
+}
+
+/* Prevent the .sidenav hover animation from affecting active links */
+.sidebarLink.active,
+.sidebarLink.active:hover,
+.submenu a.active,
+.submenu a.active:hover {
+    animation: none !important;
+    -webkit-animation: none !important;
 }
 
 /* Submenu that appears when hovering over a parent sidebar item */
@@ -331,6 +354,12 @@ footer {
 }
 
 .submenu a.active {
+    background-color: #666;
+    color: #f1f1f1;
+}
+
+/* Keep active submenu link color stable on hover */
+.submenu a.active:hover {
     background-color: #666;
     color: #f1f1f1;
 }
