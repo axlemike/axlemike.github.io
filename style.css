@@ -466,3 +466,10 @@ footer {
     color: #f1f1f1;
 }
 
+/* Do not visually highlight submenu items for the current page; keep them same as normal state */
+.submenu a.active,
+.submenu a.active:hover {
+    background-color: transparent !important;
+    color: #cfcfcf !important;
+}
+

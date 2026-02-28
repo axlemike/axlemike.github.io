@@ -8,35 +8,22 @@
         var path = window.location.pathname.split('/').pop();
         if (!path) path = 'index.html';
 
-        // First try submenu links
-        var submenuLinks = document.querySelectorAll('.submenu a');
-        var found = false;
-        submenuLinks.forEach(function(a)
-        {
+        // Mark top-level sidebar links active when they match the current filename.
+        // Do NOT mark submenu items as active to avoid highlighting them.
+        var links = document.querySelectorAll('.sidebarLink');
+        links.forEach(function(a){
             var href = a.getAttribute('href');
             if (!href) return;
             var hrefName = href.split('/').pop();
-            if (hrefName === path)
-            {
+            if (hrefName === path || (hrefName === 'index.html' && path === 'index.html')) {
                 a.classList.add('active');
-                found = true;
+            } else {
+                a.classList.remove('active');
             }
         });
 
-        if (!found)
-        {
-            // Fallback: mark top-level sidebar links
-            var links = document.querySelectorAll('.sidebarLink');
-            links.forEach(function(a){
-                var href = a.getAttribute('href');
-                if (!href) return;
-                var hrefName = href.split('/').pop();
-                if (hrefName === path || (hrefName === 'index.html' && path === 'index.html'))
-                {
-                    a.classList.add('active');
-                }
-            });
-        }
+        // Ensure submenu items never carry an active class (clear any leftover state)
+        document.querySelectorAll('.submenu a.active').forEach(function(a){ a.classList.remove('active'); });
     }
     catch (e)
     {
@@ -95,9 +82,15 @@
             // mark this link as animated-capable
             projectsLink.classList.add('has-animated');
 
-            // determine the current subpage name from an active submenu item (prefer submenu active)
-            var activeSub = document.querySelector('.submenu a.active');
-            var currentText = activeSub ? activeSub.textContent.trim() : null;
+            // determine the current subpage name by matching submenu href to the current filename
+            var currentText = null;
+            var submenuLinks = Array.prototype.slice.call(document.querySelectorAll('.submenu a'));
+            var activeSub = submenuLinks.find(function(a)
+            {
+                var href = a.getAttribute('href') || '';
+                return href.split('/').pop() === path;
+            });
+            if (activeSub) currentText = activeSub.textContent.trim();
 
             // If there's no active submenu item but we're on a projects_* page, try to match by filename
             var path3 = window.location.pathname.split('/').pop();
