@@ -7,7 +7,7 @@ h1 {
 }
 
 :root {
-    --sidebar-width: 160px;
+    --sidebar-width: 220px;
     --sidebar-gutter: 18px;
 }
 
@@ -220,6 +220,79 @@ footer {
         margin: 12px 0 6px 0;
 }
 
+/* Animated Projects title: current subpage vs Projects label */
+#pageAnimatedTitle {
+    position: relative;
+    overflow: hidden;
+    height: 1.2em;
+}
+#pageAnimatedTitle span {
+    display: inline-block;
+    position: absolute;
+    left: 0;
+    top: 0;
+    white-space: nowrap;
+    transition: transform 280ms cubic-bezier(.2,.9,.3,1), opacity 220ms ease;
+}
+.title-current {
+    transform: translateX(0);
+    opacity: 1;
+}
+.title-projects {
+    transform: translateX(-100%);
+    opacity: 0;
+}
+/* when hovering the Projects menu, show the Projects label (slide in) */
+#pageAnimatedTitle.show-projects .title-current {
+    transform: translateX(100%);
+    opacity: 0;
+}
+#pageAnimatedTitle.show-projects .title-projects {
+    transform: translateX(0);
+    opacity: 1;
+}
+
+/* Animated label inside the sidebar Projects button */
+.sidebarLink.has-animated {
+    position: relative;
+    overflow: hidden;
+    /* remove fixed height to avoid vertical shifting; keep same padding as .sidebarLink */
+    padding: 18px;
+}
+.sidebarLink.has-animated span {
+    display: inline-block;
+    position: absolute;
+    left: 16px;
+    top: 50%;
+    /* initial vertical centering; horizontal movement uses translateX */
+    transform: translateY(-50%);
+    white-space: nowrap;
+    transition: transform 240ms cubic-bezier(.2,.9,.3,1), opacity 180ms ease;
+}
+.sidebarLink.has-animated .title-current {
+    transform: translateY(-50%) translateX(0);
+    opacity: 1;
+}
+.sidebarLink.has-animated .title-projects {
+    transform: translateY(-50%) translateX(-100%);
+    opacity: 0;
+}
+.sidebarLink.has-animated.show-projects .title-current {
+    transform: translateY(-50%) translateX(100%);
+    opacity: 0;
+}
+.sidebarLink.has-animated.show-projects .title-projects {
+    transform: translateY(-50%) translateX(0);
+    opacity: 1;
+}
+
+/* Ensure active/hover states still apply visually */
+.sidebarLink.has-animated.active,
+.sidebarLink.has-animated.active:hover {
+    background-color: #3a3a3a;
+    color: #f1f1f1;
+}
+
 
 /* Style the collapsible content. Note: hidden by default */
 /* spacer divs removed; use margins on sidebar links */
@@ -269,15 +342,17 @@ footer {
     color: #888888;
     cursor: pointer;
     padding: 18px;
-    width: 100%;
     border: none;
     text-align: left;
     outline: none;
     font-size: 15px;
-    display: block;
+    display: flex;
+    align-items: center;
     box-sizing: border-box; /* ensure padding is included in width */
     width: 100%;
     margin-bottom: 14px; /* increased spacing between sidebar links */
+    min-height: 44px; /* consistent button height */
+    line-height: 1.1;
 }
 
 /* Hover state for sidebar links */
@@ -321,7 +396,7 @@ footer {
     background-color: #202020;
     padding: 8px;
     border-radius: 4px;
-    min-width: 160px;
+    min-width: 220px;
     box-shadow: 0 6px 18px rgba(0,0,0,0.5);
     z-index: 50;
 }
