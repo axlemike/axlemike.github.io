@@ -50,11 +50,20 @@
         if (keepImg) activePreview = { card: keepCard, thumb: keepThumb, staticImg: keepImg };
     }
 
-    // stop preview when clicking outside the active card
+    // stop preview when clicking outside the active card or on the overlay background
     document.addEventListener('click', function(e){
         if (!activePreview || !activePreview.card) return;
-        if (activePreview.card.contains(e.target)) return; // click inside active card -> ignore
-        stopActivePreview(true);
+        var overlay = activePreview.overlayEl;
+        // If overlay is present, clicking the overlay background (the overlay element itself) should close everything.
+        if (overlay) {
+            if (overlay === e.target) { stopActivePreview(false); e.stopPropagation(); e.preventDefault(); return; }
+            // clicks inside the overlay content (canvas etc) should NOT close
+            if (overlay.contains(e.target)) return;
+        }
+        // clicks inside the card should not close
+        if (activePreview.card.contains(e.target)) return;
+        // outside click: fully stop preview and remove tint/overlay in one action
+        stopActivePreview(false);
     }, true);
 
     function safeText(t){ return (t||'Untitled').replace(/</g,'&lt;'); }
@@ -87,35 +96,32 @@
         // If the file has a top-level `shaders` array, use it
         if (list && list.shaders && Array.isArray(list.shaders)) list = list.shaders;
 
-        var simple = [];
-        var external = [];
+        var out = [];
         list.forEach(function(entry){
-            // normalize: entry may be an object with `info` and `renderpass`
             var code = '';
             if (entry && entry.renderpass && Array.isArray(entry.renderpass)) {
                 entry.renderpass.forEach(function(rp){ if (rp && rp.code) code += rp.code + '\n'; });
             }
-            // fallback to common fields
             if (!code) code = (entry.shader || entry.code || entry.src || '').toString();
+
+            var hasInputs = false;
+            if (entry && entry.renderpass && Array.isArray(entry.renderpass)) {
+                entry.renderpass.forEach(function(rp){ if (rp && rp.inputs && rp.inputs.length) hasInputs = true; });
+            }
 
             var item = {
                 title: (entry && entry.info && entry.info.name) || entry.title || entry.name || entry._key || null,
                 id: (entry && entry.info && entry.info.id) || entry.id || null,
                 url: (entry && entry.info && entry.info.id) ? ('https://www.shadertoy.com/view/' + entry.info.id) : (entry.url || entry.view || null),
                 code: code,
-                raw: entry
+                raw: entry,
+                isExternal: hasInputs || requiresExternalResources(code)
             };
-
-            // also treat entries with renderpass inputs as external
-            var hasInputs = false;
-            if (entry && entry.renderpass && Array.isArray(entry.renderpass)) {
-                entry.renderpass.forEach(function(rp){ if (rp && rp.inputs && rp.inputs.length) hasInputs = true; });
-            }
-
-            if (hasInputs || requiresExternalResources(code)) external.push(item); else simple.push(item);
+            out.push(item);
         });
 
-        return simple.slice(0, MAX).concat(external.slice(0, 6));
+        // Preserve original order but cap the total shown
+        return out.slice(0, MAX);
     }
 
     function shadertoyUrlFor(item)
@@ -130,7 +136,7 @@
 
     function makeCard(item, idx)
     {
-        var isExternal = requiresExternalResources((item.code || '').toString()) || !!(item.raw && (item.raw.renderpass && item.raw.renderpass.some(function(r){ return r.inputs && r.inputs.length; })));
+        var isExternal = !!item.isExternal;
         var card = document.createElement('div'); card.className = 'shader-card';
         var title = document.createElement('div'); title.className = 'shader-title'; title.innerHTML = safeText(item.title || item.name || ('Shader ' + (idx+1)));
         var thumb = document.createElement('div'); thumb.className = 'shader-thumb';
@@ -155,6 +161,19 @@
         // inline/simple shader preview (deferred compile)
         // keep title visually at the bottom (thumb above, title below)
         play.textContent = '▶'; thumb.appendChild(play); card.appendChild(thumb); card.appendChild(title);
+
+        // If this shader requires external resources, make the entire card a link to Shadertoy
+        if (isExternal && shadertoyUrl) {
+            var wrap = document.createElement('a');
+            wrap.href = shadertoyUrl; wrap.target = '_blank'; wrap.rel = 'noopener'; wrap.className = 'shader-link';
+            // remove play button behavior for external items
+            thumb.removeChild(play);
+            // show a small external indicator in the thumb
+            var ext = document.createElement('div'); ext.className = 'shader-external'; ext.textContent = '↗'; ext.style.position = 'absolute'; ext.style.right = '8px'; ext.style.top = '8px'; ext.style.color = '#ddd'; thumb.appendChild(ext);
+            wrap.appendChild(thumb); wrap.appendChild(title);
+            card.appendChild(wrap);
+            return card;
+        }
 
         var previewGL = null;
 
@@ -234,6 +253,9 @@
         }
 
         play.addEventListener('click', function(ev){ ev.stopPropagation(); if (!previewGL) startPreview(); openOverlay(); });
+
+        // Make clicking anywhere on the card start the preview / open overlay (ignore clicks on buttons)
+        card.addEventListener('click', function(ev){ if (ev.target.closest && ev.target.closest('button, a')) return; if (!previewGL) startPreview(); openOverlay(); });
 
         return card;
     }

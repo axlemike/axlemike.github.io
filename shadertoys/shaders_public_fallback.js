@@ -4,6 +4,7 @@ window.SHADERS_PUBLIC = {
  "userName": "AxleMike",
  "date": "2026-02-27T21:35:47.585Z",
  "numShaders": 11,
+ "numShaders": 10,
  "shaders": [
   {
    "ver": "0.1",
@@ -80,11 +81,6 @@ window.SHADERS_PUBLIC = {
    "ver": "0.1",
    "info": { "id": "4tVSzz", "name": "Open Sign" },
    "renderpass": [ { "inputs": [], "outputs": [ { "id": "4dfGRr", "channel": 0 } ], "code": "// open sign", "name": "Image", "type": "image" } ]
-  },
-  {
-   "ver": "0.1",
-   "info": { "id": "...", "name": "(more)" },
-   "renderpass": []
   }
  ]
 };
