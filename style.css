@@ -78,6 +78,7 @@ footer {
     left: 0;
     background-color: var(--sidebar-bg); /* Black */
     overflow-x: visible; /* allow submenu to extend to the right */
+    text-decoration: none;
     font-family: "Arial Narrow", Arial, sans-serif;
     padding-top: 20px;
 }
@@ -376,6 +377,25 @@ footer {
     transition: color 160ms ease, background-color 160ms ease;
 }
 
+/* Force no underlines and neutral button appearance for sidebar items */
+.sidenav .sidebarLink,
+.sidenav a.sidebarLink,
+.sidenav .sidebarLink.sidebarLabel {
+    text-decoration: none !important;
+    -webkit-appearance: none;
+    appearance: none;
+    border: none;
+    background-clip: padding-box;
+}
+
+/* Ensure sidebar buttons/anchors use consistent box model */
+.sidenav .sidebarLink,
+.sidenav a.sidebarLink {
+    box-sizing: border-box;
+    display: flex;
+    align-items: center;
+}
+
 /* Strongly enforce outer sidebar label font/size so it doesn't inherit other rules */
 .sidenav .sidebarLink {
     font-family: "Arial Narrow", Arial, sans-serif;
@@ -435,7 +455,10 @@ footer {
 /* Submenu that appears when hovering over a parent sidebar item */
 .has-submenu {
     position: relative;
+    margin-bottom: 14px; /* match spacing of .sidebarLink */
 }
+
+.has-submenu .sidebarLink { margin-bottom: 0; }
 
 .has-submenu .submenu {
     /* Inner (dropdown) submenu — visually distinct group from outer sidebar */
