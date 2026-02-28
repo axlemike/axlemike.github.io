@@ -13,6 +13,9 @@
         var links = document.querySelectorAll('.sidebarLink');
         links.forEach(function(a){
             // support anchors (`href`) or non-link labels using `data-href`
+            // but skip submenu parent labels here — they are handled later so they
+            // don't become "active" simply because the parent page was visited.
+            if (a.classList && a.classList.contains('sidebarLabel')) return;
             var href = a.getAttribute('href') || a.dataset.href;
             if (!href) return;
             var hrefName = href.split('/').pop();
@@ -94,6 +97,25 @@
 
                 parent.addEventListener('mouseenter', function(){ parentLink.classList.add('show-default'); });
                 parent.addEventListener('mouseleave', function(){ parentLink.classList.remove('show-default'); });
+                // If the parent is clicked with a mouse, remove focus so it doesn't remain "stuck" in focus styles.
+                parentLink.addEventListener('click', function(ev){
+                    // ev.detail > 0 indicates a user mouse click; detail===0 is often keyboard-initiated click
+                    if (ev.detail && ev.detail > 0) {
+                        // remove any hover/animated classes that may stick after a mouse click
+                        parentLink.classList.remove('show-default');
+                        parentLink.classList.remove('show-projects');
+                        // if it was added accidentally, remove active state — submenu logic will re-add when appropriate
+                        parentLink.classList.remove('active');
+                        // blur after the click completes to clear :focus/:focus-within
+                        setTimeout(function(){ try { parentLink.blur(); } catch(e){} }, 0);
+
+                        // also clear focus from any element (robust fallback) and blur submenu anchors
+                        setTimeout(function(){
+                            try { if (document.activeElement && document.activeElement.blur) document.activeElement.blur(); } catch(e){}
+                            try { document.querySelectorAll('.submenu a').forEach(function(a){ try{ a.blur(); }catch(e){} }); } catch(e){}
+                        }, 0);
+                    }
+                });
             } else {
                 // not on subpage: restore original label and remove animated bits
                 if (parentLink.querySelector('.title-current')) {
@@ -181,3 +203,8 @@ function loadSidebarAndInit()
         loadSidebarAndInit();
     }
 })();
+
+// Track whether the user is interacting by mouse; when true, suppress focus-based
+// hover styles (so clicking a parent with mouse doesn't leave it styled via :focus-within).
+document.addEventListener('mousedown', function(){ document.body.classList.add('using-mouse'); }, true);
+document.addEventListener('keydown', function(){ document.body.classList.remove('using-mouse'); }, true);

@@ -84,12 +84,13 @@ footer {
 }
 
 /* The navigation menu links (non-sidebarLink anchors) */
-    height: 44px; /* consistent button height */
-    line-height: 1.1;
+.sidenav a:not(.sidebarLink) {
+    padding: 6px 8px 6px 16px;
     text-decoration: none;
     font-size: 25px;
     color: #818181;
     display: block;
+    transition: color 160ms ease;
 }
 
 
@@ -99,11 +100,7 @@ footer {
     100% { transform: translateY(0); }
 }
 
-/* Define a keyframe animation */
-@keyframes linkChange {
-    0% { color: #818181; }
-    100% { color: #f1f1f1; }
-}
+/* The old keyframe animation was removed to prefer transitions for smoother fades */
 
 @keyframes backgroundChange {
     0% { background-color: lightblue; }
@@ -115,10 +112,6 @@ footer {
 /* When you mouse over the navigation links, change their color */
 .sidenav > a:hover {
     color: var(--sidebar-hover-text);
-    animation: linkScale 1.3s ease-in-out;
-    /*background-color: blue;*/
-    animation-name: linkChange;
-    animation-timing-function: ease;
 }
   
 /* Style page content */
@@ -425,7 +418,7 @@ footer {
 /* When hovering or focusing within the submenu, highlight the parent Projects label
    so it behaves like other hovered sidebar links. Also support keyboard focus. */
 .has-submenu:hover > .sidebarLink,
-.has-submenu:focus-within > .sidebarLink {
+body:not(.using-mouse) .has-submenu:focus-within > .sidebarLink {
     background-color: var(--sidebar-hover-bg);
     color: var(--sidebar-hover-text);
 }
@@ -480,7 +473,7 @@ footer {
 
 /* Force Projects parent to match other link hover/active visuals (higher specificity). */
 .sidenav .has-submenu:hover > .sidebarLink,
-.sidenav .has-submenu:focus-within > .sidebarLink,
+body:not(.using-mouse) .sidenav .has-submenu:focus-within > .sidebarLink,
 .sidenav .has-submenu .sidebarLink.projectsLabel:hover {
     background-color: var(--sidebar-hover-bg) !important;
     color: var(--sidebar-hover-text) !important;
@@ -504,9 +497,10 @@ footer {
     margin-bottom: 6px;
 }
 
-.submenu a:hover {
-    background-color: #ccc;
-    color: #101010;
+.has-submenu .submenu a:hover,
+.has-submenu .submenu a:focus {
+    background-color: var(--submenu-hover-bg);
+    color: var(--submenu-hover-text);
 }
 
 /* Prevent the top-level .sidenav hover animation from affecting submenu links
