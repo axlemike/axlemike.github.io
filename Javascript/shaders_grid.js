@@ -169,7 +169,8 @@
                 url: (entry && entry.info && entry.info.id) ? ('https://www.shadertoy.com/view/' + entry.info.id) : (entry.url || entry.view || null),
                 code: code,
                 raw: entry,
-                isExternal: perPassExternal || hasInteractiveInput
+                isExternal: perPassExternal || hasInteractiveInput,
+                isMultipass: hasRenderpass && entry.renderpass.length > 1
             };
             out.push(item);
         });
@@ -191,10 +192,13 @@
     function makeCard(item, idx)
     {
         var isExternal = !!item.isExternal;
+        var isMultipass = !!item.isMultipass;
+        var modeLabel = isExternal ? 'external' : (isMultipass ? 'multipass' : 'single-pass');
         var card = document.createElement('div'); card.className = 'shader-card';
         var title = document.createElement('div'); title.className = 'shader-title'; title.innerHTML = safeText(item.title || item.name || ('Shader ' + (idx+1)));
         var thumb = document.createElement('div'); thumb.className = 'shader-thumb';
         var play = document.createElement('button'); play.className='shader-play';
+        var badge = document.createElement('div'); badge.className = 'shader-badge shader-badge-' + modeLabel; badge.textContent = modeLabel; thumb.appendChild(badge);
 
         var shadertoyUrl = shadertoyUrlFor(item) || (item && item.url) || null;
         if (offlineMode) {
