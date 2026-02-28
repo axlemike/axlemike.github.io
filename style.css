@@ -134,6 +134,34 @@ footer a:hover {
 .main {
     margin-left: 0; /* spacing handled by body margin-left (var --sidebar-width) */
     padding: 0px 10px;
+    font-family: Verdana, "Arial Narrow", Arial, sans-serif;
+    font-size: 16px;
+    color: grey;
+}
+
+/* Page-scoped typography scaffold for projects_gameography.html
+   Targets the page via #gameography so you can later tweak headers
+   and list styling here without affecting other pages. These rules
+   intentionally inherit current values so there is no visual change.
+*/
+#gameography {
+    font-family: inherit;
+    font-size: inherit;
+    color: inherit;
+}
+
+#gameography h2,
+#gameography h3 {
+    font-family: inherit;
+    font-weight: inherit;
+    color: inherit;
+}
+
+#gameography ul,
+#gameography li {
+    font-family: inherit;
+    font-size: inherit;
+    color: inherit;
 }
   
 /* On smaller screens, where height is less than 450px, change the style of the sidebar (less padding and a smaller font size) */
