@@ -206,6 +206,15 @@
 
         function compileAndRun(canvas, src)
         {
+            // Multipass support: if the original raw entry contains a renderpass array,
+            // prefer a multipass implementation using WebGL2 where available and fall
+            // back to a single-pass compile otherwise.
+            var raw = item && item.raw;
+            if (raw && raw.renderpass && Array.isArray(raw.renderpass) && raw.renderpass.length > 0) {
+                return compileAndRunMultipass(canvas, raw);
+            }
+
+            // Single-pass fallback (existing behavior)
             var gl = canvas.getContext('webgl',{antialias:false});
             if (!gl) { canvas.replaceWith(document.createTextNode('WebGL unavailable')); return null; }
             var vert = '\nattribute vec2 aPos;\nvoid main(){ gl_Position = vec4(aPos,0.,1.); }\n';
@@ -232,6 +241,129 @@
                 frame();
                 return { stop: function(){ paused = true; if (rafId) cancelAnimationFrame(rafId); }, resume: function(){ if (paused){ paused = false; start = performance.now(); requestAnimationFrame(frame); } }, gl: gl };
             } catch (err) { var pre = document.createElement('pre'); pre.className = 'shader-error'; pre.textContent = 'Compile error:\n' + (err.message || err); canvas.parentNode.replaceChild(pre, canvas); return null; }
+        }
+
+        // Multipass implementation (simplified): create per-pass programs and FBOs,
+        // bind previous-pass textures as iChannel0..3, and run passes in order.
+        function compileAndRunMultipass(canvas, raw)
+        {
+            // Prefer WebGL2 for reliable float render targets
+            var gl = canvas.getContext('webgl2', { antialias: false }) || canvas.getContext('webgl', { antialias: false }) || canvas.getContext('experimental-webgl');
+            if (!gl) { canvas.replaceWith(document.createTextNode('WebGL unavailable')); return null; }
+
+            var isWebGL2 = !!canvas.getContext('webgl2');
+            var extColorFloat = null;
+            if (!isWebGL2) {
+                extColorFloat = gl.getExtension('EXT_color_buffer_float') || gl.getExtension('WEBGL_color_buffer_float');
+                if (!extColorFloat) {
+                    // graceful degradation: fall back to single-pass
+                    console.warn('Floating point FBO not available; falling back to single-pass');
+                    return compileAndRun(canvas, raw.renderpass.map(function(r){ return r.code || ''; }).join('\n'));
+                }
+            }
+
+            // helpers
+            function makeProgram(vsSrc, fsSrc) {
+                function compile(type, srcText){ var s = gl.createShader(type); gl.shaderSource(s, srcText); gl.compileShader(s); if (!gl.getShaderParameter(s, gl.COMPILE_STATUS)) throw new Error(gl.getShaderInfoLog(s) || 'compile error'); return s; }
+                var vs = compile(gl.VERTEX_SHADER, vsSrc);
+                var fs = compile(gl.FRAGMENT_SHADER, fsSrc);
+                var p = gl.createProgram(); gl.attachShader(p, vs); gl.attachShader(p, fs); gl.bindAttribLocation(p,0,'aPos'); gl.linkProgram(p);
+                if (!gl.getProgramParameter(p, gl.LINK_STATUS)) throw new Error(gl.getProgramInfoLog(p) || 'link failed');
+                return p;
+            }
+
+            var quadBuffer = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, quadBuffer);
+            gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1,-1,1,-1,-1,1,1,1]), gl.STATIC_DRAW);
+
+            // Build pass objects
+            var passes = raw.renderpass.map(function(r, idx){
+                var code = r && r.code ? r.code : (r.shader || '');
+                var hasMainImage = /mainImage\s*\(/.test(code);
+                var frag = '\nprecision highp float;\nuniform vec2 iResolution;\nuniform float iTime;\n' + code + '\n' + (hasMainImage ? '\nvoid main(){ vec2 fragCoord = gl_FragCoord.xy; vec4 col = vec4(0.0); mainImage(col, fragCoord); gl_FragColor = col; }\n' : '');
+                var vert = '\nattribute vec2 aPos;\nvoid main(){ gl_Position = vec4(aPos,0.,1.); }\n';
+                var program = null;
+                try { program = makeProgram(vert, frag); } catch (e) { console.warn('Pass compile failed', e); }
+                // allocate two textures for ping-pong to be safe
+                var texA = gl.createTexture(); gl.bindTexture(gl.TEXTURE_2D, texA); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+                var texB = gl.createTexture(); gl.bindTexture(gl.TEXTURE_2D, texB); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+                var fbo = gl.createFramebuffer();
+                return { program: program, texA: texA, texB: texB, fbo: fbo, width: canvas.width, height: canvas.height, ping: 0 };
+            });
+
+            // initialize textures with empty data
+            function allocTex(tex, w, h) {
+                gl.bindTexture(gl.TEXTURE_2D, tex);
+                if (isWebGL2) gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA32F, w, h, 0, gl.RGBA, gl.FLOAT, null);
+                else gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, w, h, 0, gl.RGBA, gl.FLOAT, null);
+            }
+
+            function resizeAll() {
+                var dpr = Math.max(1, window.devicePixelRatio || 1);
+                var w = Math.max(1, Math.floor(canvas.clientWidth * dpr)); var h = Math.max(1, Math.floor(canvas.clientHeight * dpr));
+                if (canvas.width !== w || canvas.height !== h) { canvas.width = w; canvas.height = h; }
+                passes.forEach(function(p){ p.width = canvas.width; p.height = canvas.height; allocTex(p.texA, p.width, p.height); allocTex(p.texB, p.width, p.height); });
+                gl.viewport(0,0,canvas.width, canvas.height);
+            }
+
+            // uniform/state locations cache
+            passes.forEach(function(p){ if (p.program) { p.uRes = gl.getUniformLocation(p.program, 'iResolution'); p.uTime = gl.getUniformLocation(p.program, 'iTime'); } });
+
+            var start = performance.now(); var raf = null; var stopped = false; var frameN = 0;
+            function step() {
+                if (stopped) return;
+                resizeAll();
+                var t = (performance.now() - start) / 1000;
+                // run passes in order; bind previous pass outputs as iChannel0..3
+                passes.forEach(function(p, idx){
+                    if (!p.program) return;
+                    // determine write texture (ping-pong)
+                    var writeTex = (p.ping === 0) ? p.texA : p.texB;
+                    var readTex = (p.ping === 0) ? p.texB : p.texA;
+                    gl.bindFramebuffer(gl.FRAMEBUFFER, p.fbo);
+                    gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, writeTex, 0);
+                    gl.viewport(0,0,p.width,p.height);
+                    gl.useProgram(p.program);
+                    // bind quad
+                    gl.bindBuffer(gl.ARRAY_BUFFER, quadBuffer); gl.enableVertexAttribArray(0); gl.vertexAttribPointer(0,2,gl.FLOAT,false,0,0);
+                    // bind previous pass outputs to texture units iChannel0..3 (heuristic)
+                    for (var ci=0; ci<4; ++ci) {
+                        var unit = gl.TEXTURE0 + ci;
+                        gl.activeTexture(unit);
+                        var srcPass = passes[idx - 1 - ci];
+                        if (srcPass) {
+                            var srcTex = (srcPass.ping === 0) ? srcPass.texA : srcPass.texB;
+                            gl.bindTexture(gl.TEXTURE_2D, srcTex);
+                            var loc = gl.getUniformLocation(p.program, 'iChannel' + ci);
+                            if (loc) gl.uniform1i(loc, ci);
+                        } else {
+                            gl.bindTexture(gl.TEXTURE_2D, null);
+                        }
+                    }
+                    if (p.uRes) gl.uniform2f(p.uRes, p.width, p.height);
+                    if (p.uTime) gl.uniform1f(p.uTime, t);
+                    gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+                    // swap ping
+                    p.ping = 1 - p.ping;
+                });
+                // present last pass to screen
+                gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+                gl.viewport(0,0,canvas.width, canvas.height);
+                var last = passes[passes.length-1];
+                if (last && last.program) {
+                    // render a simple textured quad using last.read texture
+                    var texToShow = (last.ping === 0) ? last.texB : last.texA;
+                    // use a simple blit shader if available; otherwise draw using the last pass program by binding texture as iChannel0
+                    gl.useProgram(last.program);
+                    var locC = gl.getUniformLocation(last.program, 'iChannel0'); if (locC) { gl.activeTexture(gl.TEXTURE0); gl.bindTexture(gl.TEXTURE_2D, texToShow); gl.uniform1i(locC, 0); }
+                    if (last.uRes) gl.uniform2f(last.uRes, canvas.width, canvas.height);
+                    var pos = quadBuffer; gl.bindBuffer(gl.ARRAY_BUFFER, pos); gl.enableVertexAttribArray(0); gl.vertexAttribPointer(0,2,gl.FLOAT,false,0,0);
+                    gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+                }
+                frameN++; raf = requestAnimationFrame(step);
+            }
+
+            step();
+            return { stop: function(){ stopped = true; if (raf) cancelAnimationFrame(raf); }, resume: function(){ if (stopped) { stopped = false; start = performance.now(); step(); } }, gl: gl };
         }
 
         function startPreview()
