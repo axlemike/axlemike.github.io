@@ -11,7 +11,8 @@
         // First try submenu links
         var submenuLinks = document.querySelectorAll('.submenu a');
         var found = false;
-        submenuLinks.forEach(function(a){
+        submenuLinks.forEach(function(a)
+        {
             var href = a.getAttribute('href');
             if (!href) return;
             var hrefName = href.split('/').pop();
@@ -50,7 +51,8 @@
         var projectsMenu = null;
         var projectsLink = null;
         var candidates = document.querySelectorAll('.has-submenu');
-        candidates.forEach(function(c){
+        candidates.forEach(function(c)
+        {
             if (projectsMenu) return; // already found
             var a = c.querySelector('.sidebarLink');
             if (!a) return;
@@ -63,6 +65,7 @@
                 projectsLink = a;
             }
         });
+
         // fallback: pick a candidate whose link href is projects.html
         if (!projectsMenu)
         {
@@ -109,7 +112,9 @@
                     currentText = name.replace(/\b\w/g, function(ch){ return ch.toUpperCase(); });
                     onProjectSubpage = true;
                 }
-            } else {
+            }
+            else
+            {
                 // if a submenu item was marked active earlier (not by us), treat as on subpage
                 onProjectSubpage = true;
             }
@@ -118,9 +123,12 @@
             if (!currentText) currentText = 'Projects';
 
             // If we're on a projects subpage, mark the Projects label active so it uses active color
-            if (onProjectSubpage) {
+            if (onProjectSubpage)
+            {
                 projectsLink.classList.add('active');
-            } else {
+            }
+            else
+            {
                 projectsLink.classList.remove('active');
             }
 
@@ -138,10 +146,12 @@
             }
 
             // toggle the show-projects class on hover of the menu (so submenu hover shows "Projects")
-            projectsMenu.addEventListener('mouseenter', function(){
+            projectsMenu.addEventListener('mouseenter', function()
+            {
                 projectsLink.classList.add('show-projects');
             });
-            projectsMenu.addEventListener('mouseleave', function(){
+            projectsMenu.addEventListener('mouseleave', function()
+            {
                 projectsLink.classList.remove('show-projects');
             });
         }
