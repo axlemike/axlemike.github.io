@@ -233,8 +233,12 @@
         if (!isExternal && (shadertoyUrl || (item && item.id))) {
             var playTop = document.createElement('button'); playTop.className = 'shader-play shader-play-top'; playTop.textContent = 'Run'; playTop.title = 'Run preview';
             var openBtn = document.createElement('button'); openBtn.className = 'shader-play shader-play-bottom'; openBtn.textContent = 'External'; openBtn.title = 'Open on Shadertoy';
-            thumb.appendChild(playTop); thumb.appendChild(openBtn); card.appendChild(thumb); card.appendChild(title);
-            // Top runs locally (in-card preview); bottom opens external Shadertoy
+            // Append thumb and title first, then overlay buttons container so buttons are positioned above the thumb
+            card.appendChild(thumb); card.appendChild(title);
+            var overlayBtns = document.createElement('div'); overlayBtns.className = 'shader-overlay-buttons';
+            overlayBtns.appendChild(playTop); overlayBtns.appendChild(openBtn);
+            card.appendChild(overlayBtns);
+            // Top runs locally and opens overlay immediately; bottom opens external Shadertoy
             playTop.addEventListener('click', function(ev){ ev.stopPropagation(); ev.preventDefault(); try { if (!previewGL) startPreview(); } catch(e){} try { openOverlay(); } catch(e){} });
             openBtn.addEventListener('click', function(ev){ ev.stopPropagation(); ev.preventDefault(); var target = shadertoyUrl || (item && item.id ? ('https://www.shadertoy.com/view/' + item.id) : null); if (target) window.open(target, '_blank'); });
         } else {
