@@ -1,11 +1,50 @@
-// Minimal fallback index for offline/non-hosted editing.
-// Page scripts will use this when fetching `shaders_public.json` fails.
+// Minimal fallback index kept for compatibility; prefer full embedded payload.
+// This file will also actively attempt to load the full `shaders_public_fallback.js`
+// if `window.SHADERS_PUBLIC` is missing or incomplete so offline usage shows the
+// full shader list without requiring a file upload.
 window.SHADERS_FALLBACK = [
+    { title: 'A Simple Ray Tracer', id: 'Xls3DM' },
+    { title: 'Simple Text Example', id: 'XlfSzj' },
+    { title: 'Parallax Scrolling Star Field', id: 'XtjSDh' },
+    { title: 'Noise Functions: 1', id: 'XtSXzK' },
+    { title: 'Mass Effect - Mass Relay', id: 'lstGzf' },
     { title: 'Shadertris', id: 'lst3W2' },
-    { title: 'Open Sign', id: '4tVSzz' },
-    { title: 'Silly Spiral', id: 'XtK3Rt' },
+    { title: 'PBR Editor', id: '4sKGDG' },
     { title: 'Bomberman', id: '4ltGD8' },
-    { title: 'Parallax Mapping Comparison', id: 'ltGXRV' },
+    { title: 'Colored Mandelbrot Set', id: 'MtV3Ry' },
+    { title: 'Silly Spiral', id: 'XtK3Rt' },
+    { title: '2D Rope Example', id: 'XlcSRf' },
+    { title: 'Open Sign', id: '4tVSzz' },
     { title: 'Simple Shadowmap', id: 'MlyXR1' },
-    { title: 'Parallax Scrolling Star Field', id: 'XtjSDh' }
+    { title: 'Parallax Mapping Comparision', id: 'ltGXRV' },
+    { title: 'Worley/Cell Noise', id: '4lKSzK' }
 ];
+
+// If a full `SHADERS_PUBLIC` payload already exists, keep it.
+if (window && window.SHADERS_PUBLIC && window.SHADERS_PUBLIC.shaders && window.SHADERS_PUBLIC.shaders.length) {
+    console.info('shaders_index: full SHADERS_PUBLIC present; keeping it (fallback index preserved)');
+} else {
+    // Ensure the full fallback is loaded quickly (cache-busted) so the grid sees the
+    // complete payload before rendering. This helps file:// and stale-cache cases.
+    try {
+        var script = document.createElement('script');
+        script.src = 'Javascript/shadertoys/shaders_public_fallback.js?v=' + Date.now();
+        script.onload = function(){
+            console.info('shaders_index: loaded shaders_public_fallback.js, SHADERS_PUBLIC length=', (window.SHADERS_PUBLIC && window.SHADERS_PUBLIC.shaders && window.SHADERS_PUBLIC.shaders.length));
+        };
+        script.onerror = function(){
+            console.warn('shaders_index: failed to load full fallback; leaving short index in place');
+            // As a last resort, expose a minimal SHADERS_PUBLIC so consumers see something
+            try {
+                if (!window.SHADERS_PUBLIC) window.SHADERS_PUBLIC = { shaders: window.SHADERS_FALLBACK.map(function(f){ return { info: { name: f.title, id: f.id }, url: 'https://www.shadertoy.com/view/' + f.id }; }) };
+            } catch (e) {}
+        };
+        (document.head || document.documentElement).appendChild(script);
+        // Do NOT expose the short `SHADERS_PUBLIC` immediately — allow the full
+        // `shaders_public_fallback.js` to load and set the canonical payload. If
+        // the injected script fails to load, the `onerror` handler below will
+        // create the minimal `SHADERS_PUBLIC` as a last resort.
+    } catch (e) {
+        console.warn('shaders_index: could not inject full fallback script', e);
+    }
+}

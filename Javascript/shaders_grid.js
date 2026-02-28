@@ -5,7 +5,7 @@
    - Defers compilation until user interaction; overlay enlarges shader when opened
 */
 (function(){
-    var MAX = 12;
+    var MAX = Infinity;
     var PRE_W = 320, PRE_H = 180;
     var OVERLAY_W = 900, OVERLAY_H = 506;
     var offlineMode = (location.protocol === 'file:');
@@ -99,15 +99,85 @@
     function fetchShaders(){
         // Prefer the hosted JSON; if fetch fails (or file://) fall back to an embedded JS object
         return fetch('shadertoys/shaders_public.json').then(function(r){ return r.json(); }).catch(function(err){
-            // If a full fallback JSON was embedded as JS, use it (window.SHADERS_PUBLIC)
-            if (window && window.SHADERS_PUBLIC && window.SHADERS_PUBLIC.shaders) return window.SHADERS_PUBLIC;
-            try {
-                var fallback = window.SHADERS_FALLBACK || [];
-                if (fallback && fallback.length) {
-                    return { shaders: fallback.map(function(f){ return { info: { name: f.title, id: f.id }, url: 'https://www.shadertoy.com/view/' + f.id }; }) };
+            // If a full fallback JSON was embedded as JS, use it (window.SHADERS_PUBLIC).
+            // The fallback file may run slightly after this script in some file:// environments,
+            // so poll briefly for the global to avoid a race. If that still fails, try
+            // dynamically loading the fallback script and poll again.
+            function tryGetEmbedded() {
+                try { if (window && window.SHADERS_PUBLIC && window.SHADERS_PUBLIC.shaders) return window.SHADERS_PUBLIC; } catch (e) {}
+                try { var fallback = window.SHADERS_FALLBACK || []; if (fallback && fallback.length) { return { shaders: fallback.map(function(f){ return { info: { name: f.title, id: f.id }, url: 'https://www.shadertoy.com/view/' + f.id }; }) }; } } catch (e) {}
+                return null;
+            }
+
+            var embedded = tryGetEmbedded();
+            if (embedded) {
+                // If the embedded payload is the full SHADERS_PUBLIC, return it immediately.
+                // If it's only the small `SHADERS_FALLBACK` index (short list), attempt
+                // to dynamically load the full `shaders_public_fallback.js` and poll
+                // briefly for `window.SHADERS_PUBLIC` before falling back to the small index.
+                try {
+                    var isFull = !!(window.SHADERS_PUBLIC && window.SHADERS_PUBLIC.shaders && window.SHADERS_PUBLIC.shaders.length && window.SHADERS_PUBLIC.shaders.length > 8);
+                    if (isFull) {
+                        console.info('shaders_grid: detected full embedded SHADERS_PUBLIC, shaders.length=', (window.SHADERS_PUBLIC && window.SHADERS_PUBLIC.shaders && window.SHADERS_PUBLIC.shaders.length));
+                        return window.SHADERS_PUBLIC;
+                    }
+                } catch (e) {}
+
+                // If only the small fallback index is present, try to load the full embedded payload.
+                if (!(window && window.SHADERS_PUBLIC && window.SHADERS_PUBLIC.shaders && window.SHADERS_PUBLIC.shaders.length) && window && window.SHADERS_FALLBACK) {
+                    return new Promise(function(resolve){
+                        try {
+                            var s = document.createElement('script');
+                            // add a cache-busting query to ensure local file changes are picked up
+                            s.src = 'Javascript/shadertoys/shaders_public_fallback.js?v=' + Date.now();
+                            console.info('shaders_grid: attempting dynamic load of fallback (cache-busted) ->', s.src);
+                            s.onload = function(){
+                                var waited2 = 0, interval2 = 50, maxWait2 = 1000;
+                                var t2 = setInterval(function(){
+                                    waited2 += interval2;
+                                    if (window && window.SHADERS_PUBLIC && window.SHADERS_PUBLIC.shaders && window.SHADERS_PUBLIC.shaders.length) { clearInterval(t2); resolve(window.SHADERS_PUBLIC); return; }
+                                    if (waited2 >= maxWait2) { clearInterval(t2); resolve(embedded); return; }
+                                }, interval2);
+                            };
+                            s.onerror = function(){ console.warn('shaders_grid: dynamic load of fallback failed'); resolve(embedded); };
+                            (document.head || document.documentElement).appendChild(s);
+                        } catch (e) { resolve(embedded); }
+                    });
                 }
-            } catch (e) {}
-            return { shaders: [] };
+
+                return embedded;
+            }
+
+            var interval = 50, maxWait = 1000;
+            return new Promise(function(resolve){
+                var waited = 0;
+                var t = setInterval(function(){
+                    waited += interval;
+                    var now = tryGetEmbedded();
+                    if (now) { clearInterval(t); resolve(now); return; }
+                    if (waited >= maxWait) {
+                        clearInterval(t);
+                        // Try to dynamically load the fallback script (in case it wasn't executed).
+                        try {
+                            var s = document.createElement('script');
+                            s.src = 'Javascript/shadertoys/shaders_public_fallback.js?v=' + Date.now();
+                            console.info('shaders_grid: dynamic load (fallback after wait) ->', s.src);
+                            s.onload = function(){
+                                // After load, poll again briefly for the global
+                                var waited2 = 0; var maxWait2 = 1000;
+                                var t2 = setInterval(function(){
+                                    waited2 += interval;
+                                    var now2 = tryGetEmbedded();
+                                    if (now2) { clearInterval(t2); resolve(now2); return; }
+                                    if (waited2 >= maxWait2) { clearInterval(t2); console.warn('shaders_grid: fallback script loaded but global still missing'); resolve({ shaders: [] }); }
+                                }, interval);
+                            };
+                            s.onerror = function(){ console.warn('shaders_grid: failed to dynamically load fallback script'); resolve({ shaders: [] }); };
+                            (document.head || document.documentElement).appendChild(s);
+                        } catch (e) { console.warn('shaders_grid: dynamic load failed', e); resolve({ shaders: [] }); }
+                    }
+                }, interval);
+            });
         });
     }
 
@@ -187,8 +257,8 @@
             out.push(item);
         });
 
-        // Preserve original order but cap the total shown
-        return out.slice(0, MAX);
+        // Preserve original order; return full list (no hard cap)
+        return out;
     }
 
     function shadertoyUrlFor(item)
@@ -667,5 +737,14 @@
         var root = document.getElementById('shader-grid'); if (!root) return; root.innerHTML = ''; var grid = document.createElement('div'); grid.className = 'shader-grid-inner'; list.forEach(function(it,i){ grid.appendChild(makeCard(it,i)); }); root.appendChild(grid);
     }
 
-    fetchShaders().then(function(all){ var chosen = pickShaders(all || []); renderGrid(chosen); });
+    fetchShaders().then(function(all){
+        try { console.info('shaders_grid: fetched payload', !!all, (all && all.shaders && all.shaders.length) || 0); } catch(e){}
+        // If fetch returned an empty payload but the embedded global exists, prefer it.
+        if ((!all || !all.shaders || !all.shaders.length) && window && window.SHADERS_PUBLIC && window.SHADERS_PUBLIC.shaders && window.SHADERS_PUBLIC.shaders.length) {
+            console.warn('shaders_grid: fetch returned empty; using embedded window.SHADERS_PUBLIC');
+            all = window.SHADERS_PUBLIC;
+        }
+        var chosen = pickShaders(all || []);
+        renderGrid(chosen);
+    }).catch(function(err){ console.error('shaders_grid: failed to load shaders', err); renderGrid([]); });
 })();
