@@ -358,6 +358,14 @@ footer {
 /* Hover state for sidebar links */
 .sidebarLink:hover {
     background-color: #ccc;
+    color: #f1f1f1;
+}
+
+/* When hovering or focusing within the submenu, highlight the parent Projects label
+   so it behaves like other hovered sidebar links. Also support keyboard focus. */
+.has-submenu:hover > .sidebarLink,
+.has-submenu:focus-within > .sidebarLink {
+    background-color: #ccc;
     color: #101010;
 }
 
@@ -403,6 +411,20 @@ footer {
 
 .has-submenu:hover .submenu {
     display: block;
+}
+
+/* Force Projects parent to match other link hover/active visuals (higher specificity). */
+.sidenav .has-submenu:hover > .sidebarLink,
+.sidenav .has-submenu:focus-within > .sidebarLink,
+.sidenav .has-submenu .sidebarLink.projectsLabel:hover {
+    background-color: #ccc !important;
+    color: #f1f1f1 !important;
+}
+
+/* Ensure animated title spans inside Projects label also pick up the hover color */
+.sidenav .has-submenu:hover > .sidebarLink .title-current,
+.sidenav .has-submenu:hover > .sidebarLink .title-projects {
+    color: #f1f1f1 !important;
 }
 
 .submenu a {
