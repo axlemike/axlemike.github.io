@@ -1,5 +1,7 @@
 (function()
 {
+    // site metadata is provided by site_meta.js (window.SITE_YEAR)
+
     function init() {
     // Mark the active sidebar or submenu link based on current filename.
     // Prefer submenu matches (e.g. projects_github.html) over the parent Projects button.
