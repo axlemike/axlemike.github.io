@@ -12,7 +12,8 @@
         // Do NOT mark submenu items as active to avoid highlighting them.
         var links = document.querySelectorAll('.sidebarLink');
         links.forEach(function(a){
-            var href = a.getAttribute('href');
+            // support anchors (`href`) or non-link labels using `data-href`
+            var href = a.getAttribute('href') || a.dataset.href;
             if (!href) return;
             var hrefName = href.split('/').pop();
             if (hrefName === path || (hrefName === 'index.html' && path === 'index.html')) {
@@ -52,7 +53,7 @@
                 return href.split('/').pop() === path;
             });
 
-            var parentHref = (parentLink.getAttribute('href') || '').split('/').pop();
+            var parentHref = ((parentLink.getAttribute('href') || parentLink.dataset.href) || '').split('/').pop();
 
             // determine if we're on a subpage for this parent
             var onSubpage = false;
@@ -112,27 +113,27 @@ function loadSidebarAndInit()
 {
     // try to fetch sidebar.html; if it fails (file:// or network), inject a small fallback
         var fallbackHtml = `
-<div class="sidenav">
-    <a href="index.html" class="sidebarLink">Home</a>
-     <div class="has-submenu">
-        <a href="about.html" class="sidebarLink">About</a>
-        <div class="submenu">
-            <a href="bio.html">Bio</a>
-            <a href="resume.html">Resume</a>
+    <div class="sidenav">
+        <a href="index.html" class="sidebarLink">Home</a>
+         <div class="has-submenu">
+            <button class="sidebarLink sidebarLabel" data-href="about.html" type="button">About</button>
+            <div class="submenu">
+                <a href="bio.html">Bio</a>
+                <a href="resume.html">Resume</a>
+            </div>
         </div>
-    </div>
-    <a href="blog.html" class="sidebarLink">Blog</a>
-    <div class="has-submenu">
-        <a href="projects.html" class="sidebarLink">Projects</a>
-        <div class="submenu">
-            <a href="projects_gameography.html">Gameography</a>
-            <a href="projects_github.html">GitHub</a>
-            <a href="projects_shadertoys.html">Shadertoys</a>
+        <a href="blog.html" class="sidebarLink">Blog</a>
+        <div class="has-submenu">
+            <button class="sidebarLink sidebarLabel" data-href="projects.html" type="button">Projects</button>
+            <div class="submenu">
+                <a href="projects_gameography.html">Gameography</a>
+                <a href="projects_github.html">GitHub</a>
+                <a href="projects_shadertoys.html">Shadertoys</a>
+            </div>
         </div>
+        <a href="contact.html" class="sidebarLink">Contact</a>
     </div>
-    <a href="contact.html" class="sidebarLink">Contact</a>
-</div>
-`;
+    `;
 
     fetch('sidebar.html').then(function(resp)
     {

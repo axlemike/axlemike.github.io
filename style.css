@@ -9,6 +9,21 @@ h1 {
 :root {
     --sidebar-width: 220px;
     --sidebar-gutter: 18px;
+
+    /* Sidebar color / sizing variables */
+    --sidebar-bg: #111;
+    --sidebar-link-bg: #303030;
+    --sidebar-text: #888888;
+    --sidebar-hover-bg: #ccc;
+    --sidebar-hover-text: #101010;
+    --sidebar-active-bg: #3a3a3a;
+    --sidebar-active-text: #f1f1f1;
+
+    /* Submenu (dropdown) variables */
+    --submenu-bg: #202020;
+    --submenu-link-color: #cfcfcf;
+    --submenu-hover-bg: #2b2b2b;
+    --submenu-hover-text: #f1f1f1;
 }
 
 body {
@@ -61,13 +76,14 @@ footer {
     z-index: 1000; /* Stay on top */
     top: 0; /* Stay at the top */
     left: 0;
-    background-color: #111; /* Black */
+    background-color: var(--sidebar-bg); /* Black */
     overflow-x: visible; /* allow submenu to extend to the right */
+    font-family: "Arial Narrow", Arial, sans-serif;
     padding-top: 20px;
 }
 
-/* The navigation menu links */
-.sidenav a {
+/* The navigation menu links (non-sidebarLink anchors) */
+.sidenav a:not(.sidebarLink) {
     padding: 6px 8px 6px 16px;
     text-decoration: none;
     font-size: 25px;
@@ -96,8 +112,8 @@ footer {
 }
 
 /* When you mouse over the navigation links, change their color */
-.sidenav a:hover {
-    color: #101010;
+.sidenav > a:hover {
+    color: var(--sidebar-hover-text);
     animation: linkScale 1.3s ease-in-out;
     /*background-color: blue;*/
     animation-name: linkChange;
@@ -268,6 +284,10 @@ footer {
     transform: translateY(-50%);
     white-space: nowrap;
     transition: transform 240ms cubic-bezier(.2,.9,.3,1), opacity 180ms ease, color 160ms ease;
+    /* inherit font properties from parent so label sizing matches other sidebar links */
+    font-family: inherit;
+    font-size: inherit;
+    line-height: inherit;
 }
 .sidebarLink.has-animated .title-current {
     transform: translateY(-50%) translateX(0);
@@ -356,31 +376,51 @@ footer {
     transition: color 160ms ease, background-color 160ms ease;
 }
 
+/* Strongly enforce outer sidebar label font/size so it doesn't inherit other rules */
+.sidenav .sidebarLink {
+    font-family: "Arial Narrow", Arial, sans-serif;
+    font-size: 15px;
+    line-height: 1.1;
+}
+
+/* Outer parent labels (About/Projects) are non-anchor buttons; ensure they match anchors */
+.sidenav .sidebarLink.sidebarLabel {
+    font-family: inherit;
+    font-size: inherit;
+}
+
+/* Inner submenu links (dropdown) — visually smaller than outer labels */
+.sidenav .has-submenu .submenu a {
+    font-family: "Arial Narrow", Arial, sans-serif;
+    font-size: 14px;
+    line-height: 1.1;
+}
+
 /* Hover state for sidebar links */
 .sidebarLink:hover {
-    background-color: #ccc;
-    color: #101010;
+    background-color: var(--sidebar-hover-bg);
+    color: var(--sidebar-hover-text);
 }
 
 /* When hovering or focusing within the submenu, highlight the parent Projects label
    so it behaves like other hovered sidebar links. Also support keyboard focus. */
 .has-submenu:hover > .sidebarLink,
 .has-submenu:focus-within > .sidebarLink {
-    background-color: #ccc;
-    color: #101010;
+    background-color: var(--sidebar-hover-bg);
+    color: var(--sidebar-hover-text);
 }
 
 /* Active (current page) sidebar state — distinct from hover */
 .sidebarLink.active {
-    background-color: #3a3a3a;
-    color: #f1f1f1;
+    background-color: var(--sidebar-active-bg);
+    color: var(--sidebar-active-text);
     font-weight: 400;
 }
 
 /* Keep active link color stable on hover */
 .sidebarLink.active:hover {
-    background-color: #3a3a3a;
-    color: #f1f1f1;
+    background-color: var(--sidebar-active-bg);
+    color: var(--sidebar-active-text);
 }
 
 /* Prevent the .sidenav hover animation from affecting active links */
@@ -398,14 +438,15 @@ footer {
 }
 
 .has-submenu .submenu {
+    /* Inner (dropdown) submenu — visually distinct group from outer sidebar */
     display: none;
     position: absolute;
     left: 100%; /* place to the right of the parent */
     top: 0; /* align with parent link */
-    background-color: #202020;
+    background-color: var(--submenu-bg);
     padding: 8px;
     border-radius: 4px;
-    min-width: 220px;
+    min-width: var(--sidebar-width);
     box-shadow: 0 6px 18px rgba(0,0,0,0.5);
     z-index: 50;
 }
@@ -418,19 +459,19 @@ footer {
 .sidenav .has-submenu:hover > .sidebarLink,
 .sidenav .has-submenu:focus-within > .sidebarLink,
 .sidenav .has-submenu .sidebarLink.projectsLabel:hover {
-    background-color: #ccc !important;
-    color: #101010 !important;
+    background-color: var(--sidebar-hover-bg) !important;
+    color: var(--sidebar-hover-text) !important;
 }
 
 /* Ensure animated title spans inside Projects label also pick up the hover color */
 .sidenav .has-submenu:hover > .sidebarLink .title-current,
 .sidenav .has-submenu:hover > .sidebarLink .title-default {
-    color: #101010 !important;
+    color: var(--sidebar-hover-text) !important;
 }
 
 .submenu a {
     background-color: transparent;
-    color: #cfcfcf;
+    color: var(--submenu-link-color);
     font-family: "Arial Narrow", Arial, sans-serif; /* match sidebar font */
     padding: 8px 10px;
     display: block;
@@ -464,8 +505,8 @@ footer {
 }
 
 .sidenav .has-submenu .submenu a:hover {
-    background-color: #ccc !important;
-    color: #101010 !important;
+    background-color: var(--submenu-hover-bg) !important;
+    color: var(--submenu-hover-text) !important;
 }
 
 /* Do not visually highlight submenu items for the current page; keep them same as normal state */
