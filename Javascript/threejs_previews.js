@@ -53,8 +53,15 @@
                 // only handle items with code
                 if (!item || !item.code) return false;
 
-                // If the shader requires external resources but we cannot find textures, bail
-                var requiresExt = /iChannel|sampler2D|buffer|iChannel0|iChannel1/i.test(item.code) || (item.raw && item.raw.renderpass && item.raw.renderpass.some(function(r){ return r.inputs && r.inputs.length; }));
+                // Determine whether the shader actually requires external (published) textures.
+                // Multipass shaders that use internal buffers but no published filepaths
+                // should still be allowed to run in the preview. Only treat as requiring
+                // external resources when a renderpass input explicitly has a `filepath`
+                // and is marked `published`.
+                var hasExternalInputs = item.raw && item.raw.renderpass && item.raw.renderpass.some(function(r){
+                    return r.inputs && r.inputs.some(function(inp){ return inp && inp.filepath && inp.published; });
+                });
+                var requiresExt = !!hasExternalInputs;
 
                 // Try to load textures if inputs exist; otherwise proceed.
                 tryLoadTexturesFromRenderpass(item, function(textures){
