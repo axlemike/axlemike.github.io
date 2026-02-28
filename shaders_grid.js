@@ -275,6 +275,13 @@
             var quadBuffer = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, quadBuffer);
             gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1,-1,1,-1,-1,1,1,1]), gl.STATIC_DRAW);
 
+            // Build a map from output IDs to pass indices so inputs that reference
+            // outputs by id (common in Shadertoy JSON) can be resolved to pass indices.
+            var outputsMap = {};
+            if (raw.renderpass && Array.isArray(raw.renderpass)) {
+                raw.renderpass.forEach(function(rp, i){ if (rp && rp.outputs && Array.isArray(rp.outputs)) { rp.outputs.forEach(function(o){ if (o && o.id) outputsMap[o.id] = i; }); } });
+            }
+
             // Build pass objects
             var passes = raw.renderpass.map(function(r, idx){
                 var code = r && r.code ? r.code : (r.shader || '');
@@ -292,10 +299,14 @@
                 if (r && Array.isArray(r.inputs)) {
                     r.inputs.forEach(function(inp, ii){
                         var entry = { type: 'empty', tex: null, src: inp };
-                        // if numeric, treat as pass index
+                        // numeric -> pass index
                         if (typeof inp === 'number') { entry.type = 'pass'; entry.passIndex = inp; }
                         else if (inp && typeof inp === 'object') {
-                            if (typeof inp.src === 'number') { entry.type = 'pass'; entry.passIndex = inp.src; }
+                            // if input references an output id, resolve via outputsMap
+                            if (inp.id && outputsMap.hasOwnProperty(inp.id)) { entry.type = 'pass'; entry.passIndex = outputsMap[inp.id]; }
+                            else if (typeof inp.src === 'number') { entry.type = 'pass'; entry.passIndex = inp.src; }
+                            // handle filepaths from exported JSON (filepath or src)
+                            else if (inp.filepath && typeof inp.filepath === 'string') { entry.type = 'image'; entry.url = inp.filepath; }
                             else if (typeof inp.src === 'string' && (inp.src.indexOf('http') === 0 || inp.src.indexOf('/') >= 0)) { entry.type = 'image'; entry.url = inp.src; }
                         } else if (typeof inp === 'string' && (inp.indexOf('http') === 0 || inp.indexOf('/') >= 0)) { entry.type = 'image'; entry.url = inp; }
                         inputs.push(entry);
