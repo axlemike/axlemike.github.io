@@ -72,6 +72,26 @@
         stopActivePreview(false);
     }, true);
 
+    // Extra safety: if an overlay was created by another module (ThreeOverlay)
+    // and activePreview isn't set, clicking the backdrop or outside the overlay
+    // content should still remove the overlay and tint in one click.
+    document.addEventListener('click', function(e){
+        try {
+            var overlayEl = e.target && e.target.closest ? e.target.closest('.shader-overlay') : null;
+            if (!overlayEl) return;
+            // consider clicks inside these content elements as "inside" the overlay
+            var inCanvas = overlayEl.querySelector('.shader-overlay-canvas') && overlayEl.querySelector('.shader-overlay-canvas').contains(e.target);
+            var inThree = overlayEl.querySelector('.threejs-mount') && overlayEl.querySelector('.threejs-mount').contains(e.target);
+            var inTitle = e.target.closest && e.target.closest('.shader-overlay-title');
+            var inClose = e.target.closest && e.target.closest('.shader-overlay-close');
+            if (inCanvas || inThree || inTitle || inClose) return; // clicking content should not auto-close here
+            // otherwise, remove all overlays and stop previews
+            try { var overlays = document.querySelectorAll('.shader-overlay'); if (overlays && overlays.length) overlays.forEach(function(o){ try { if (o._threeCleanup) o._threeCleanup(); else if (o.parentNode) o.parentNode.removeChild(o); } catch(e){} }); } catch(e){}
+            stopActivePreview(false);
+            e.stopPropagation(); e.preventDefault();
+        } catch (e) {}
+    }, false);
+
     function safeText(t){ return (t||'Untitled').replace(/</g,'&lt;'); }
 
     function fetchShaders(){

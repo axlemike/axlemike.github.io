@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <link rel="stylesheet" href="style.css">
+    <meta charset="UTF-8">
+        <script src="site_meta.js"></script>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Projects — Shadertoys</title>
+</head>
+<body>
+    <header>
+        <h1>Shadertoys</h1>
+        <nav>
+            <!-- sidebar injected from sidebar.html -->
+        </nav>
+    </header>
+
+    <main class="main">
+        <p>Interactive Shadertoy previews are available in the shader grid below. Click a card to launch a live preview or open the original on Shadertoy if external resources are required.</p>
+
+        <section class="shader-grid-section">
+            <div id="shader-grid" class="shader-grid"></div>
+        </section>
+    </main>
+
+    <footer>
+        <p>© <script>document.write(window.SITE_YEAR||2026)</script> Alexander Lemke. All rights reserved.</p>
+        <ul>
+            <li><a href="https://github.com/axlemike">GitHub</a></li>
+            <li><a href="https://www.linkedin.com/in/axlemke">LinkedIn</a></li>
+            <li><a href="sitemap.html">Sitemap</a></li>
+        </ul>
+    </footer>
+    <script src="sidebar.js"></script>
+    <script src="https://unpkg.com/three@0.160.0/build/three.min.js"></script>
+    <script src="threejs_previews.js"></script>
+    <script src="shadertoys/shaders_public_fallback_full.js"></script>
+    <script src="shadertoys/shaders_public_fallback.js"></script>
+    <script src="shadertoys/shaders_index.js"></script>
+    <script src="shaders_grid.js"></script>
+</body>
+</html>
