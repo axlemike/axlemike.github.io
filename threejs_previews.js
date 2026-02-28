@@ -67,8 +67,9 @@
 
                     var overlay = document.createElement('div'); overlay.className = 'shader-overlay';
                     var close = document.createElement('button'); close.className = 'shader-overlay-close'; close.textContent = '✕';
+                    var titleEl = document.createElement('div'); titleEl.className = 'shader-overlay-title'; titleEl.textContent = item.title || (item.raw && item.raw.info && item.raw.info.name) || 'Shader';
                     var mount = document.createElement('div'); mount.className = 'threejs-mount';
-                    overlay.appendChild(close); overlay.appendChild(mount); document.body.appendChild(overlay);
+                    overlay.appendChild(close); overlay.appendChild(titleEl); overlay.appendChild(mount); document.body.appendChild(overlay);
 
                     var width = Math.min(window.innerWidth * 0.9, 900);
                     var height = Math.round(width * 506/900);
@@ -90,9 +91,17 @@
                     function loop(){ mat.uniforms.iTime.value = (performance.now() - start)/1000; renderer.render(scene, camera); raf = requestAnimationFrame(loop); }
                     loop();
 
-                    function closeOverlay(){ try { if (raf) cancelAnimationFrame(raf); } catch(e){} try { renderer.dispose(); } catch(e){} overlay.remove(); }
-                    close.addEventListener('click', closeOverlay); overlay.addEventListener('click', function(e){ if (e.target === overlay) closeOverlay(); });
-                    document.addEventListener('keydown', function onK(e){ if (e.key === 'Escape'){ closeOverlay(); document.removeEventListener('keydown', onK); }});
+                    var onK = function onK(e){ if (e.key === 'Escape'){ closeOverlay(); document.removeEventListener('keydown', onK); }};
+                    function closeOverlay(){
+                        try { if (raf) cancelAnimationFrame(raf); } catch(e){}
+                        try { renderer.dispose(); } catch(e){}
+                        try { document.removeEventListener('keydown', onK); } catch(e){}
+                        if (overlay && overlay.parentNode) overlay.parentNode.removeChild(overlay);
+                    }
+                    close.addEventListener('click', function(ev){ ev.stopPropagation(); closeOverlay(); });
+                    // Close when clicking on the backdrop or anywhere outside the mount content (single click)
+                    overlay.addEventListener('click', function(e){ if (e.target === overlay || !mount.contains(e.target)) { closeOverlay(); } });
+                    document.addEventListener('keydown', onK);
                 });
 
                 // We do async handling (texture loads) so don't claim synchronous handling here.

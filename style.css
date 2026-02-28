@@ -596,6 +596,7 @@ body:not(.using-mouse) .sidenav .has-submenu:focus-within > .sidebarLink,
 /* overlay */
 .shader-overlay{ position:fixed; inset:0; display:flex; align-items:center; justify-content:center; background:rgba(0,0,0,0.75); z-index:2200; }
 .shader-overlay-canvas{ width:80vw; max-width:900px; height:auto; background:#000; border-radius:6px; }
+.shader-overlay-title{ color:#fff; font-weight:600; margin-bottom:12px; text-align:center; font-size:18px; max-width:90vw; }
 .shader-overlay-close{ position:fixed; top:18px; right:18px; z-index:2300; background:transparent; color:#fff; border:none; font-size:22px; cursor:pointer; }
 
 @media (max-width:640px){
