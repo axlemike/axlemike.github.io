@@ -34,6 +34,7 @@
                         if (img.parentNode) img.parentNode.appendChild(play2);
                     } catch (e) {}
                     activePreview.staticImg = img;
+                    try { if (activePreview.card && activePreview.card.classList) activePreview.card.classList.add('show-badge'); } catch(e){}
                 } catch (e) { /* ignore capture errors */ }
             }
         } catch (e) {}
@@ -42,6 +43,7 @@
         try { if (activePreview.overlayPreview && activePreview.overlayPreview.stop) activePreview.overlayPreview.stop(); } catch(e){}
         try { if (activePreview.io && activePreview.io.disconnect) activePreview.io.disconnect(); } catch(e){}
         try { if (activePreview.overlayEl && activePreview.overlayEl.parentNode) activePreview.overlayEl.parentNode.removeChild(activePreview.overlayEl); } catch(e){}
+        try { if (activePreview.card && activePreview.card._previewBadgeTimer) { clearTimeout(activePreview.card._previewBadgeTimer); activePreview.card._previewBadgeTimer = null; } } catch(e){}
         try {
             // also remove any lingering overlays created by other modules (ThreeOverlay)
             var overlays = document.querySelectorAll && document.querySelectorAll('.shader-overlay');
@@ -607,6 +609,12 @@
             io.observe(c);
             // record active preview
             activePreview = { card: card, thumb: thumb, canvas: c, previewGLThumb: previewGL, io: io };
+                // schedule showing the badge above the running/paused preview after a short delay
+                try {
+                    if (card && card._previewBadgeTimer) { clearTimeout(card._previewBadgeTimer); card._previewBadgeTimer = null; }
+                    if (card && card.classList) card.classList.remove('show-badge');
+                    card._previewBadgeTimer = setTimeout(function(){ try { if (card && card.classList) card.classList.add('show-badge'); } catch(e){} }, 1200);
+                } catch(e){}
             // expose restart hooks so static-image play button can call back
             try { card._startPreview = startPreview; card._openOverlay = openOverlay; } catch (e) {}
         }
