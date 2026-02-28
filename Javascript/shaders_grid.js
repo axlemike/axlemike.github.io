@@ -230,17 +230,26 @@
         // keep title visually at the bottom (thumb above, title below)
         // If this shader can run locally but also has an external Shadertoy URL,
         // provide two stacked buttons: top = run locally, bottom = open external.
-        if (!isExternal && (shadertoyUrl || (item && item.id))) {
+        function createOverlayButtons() {
+            // avoid duplicated buttons
+            try { var existing = card.querySelector && card.querySelector('.shader-overlay-buttons'); if (existing) return existing; } catch(e){}
             var playTop = document.createElement('button'); playTop.className = 'shader-play shader-play-top'; playTop.textContent = 'Run'; playTop.title = 'Run preview';
             var openBtn = document.createElement('button'); openBtn.className = 'shader-play shader-play-bottom'; openBtn.textContent = 'External'; openBtn.title = 'Open on Shadertoy';
-            // Append thumb and title first, then overlay buttons container so buttons are positioned above the thumb
-            card.appendChild(thumb); card.appendChild(title);
             var overlayBtns = document.createElement('div'); overlayBtns.className = 'shader-overlay-buttons';
             overlayBtns.appendChild(playTop); overlayBtns.appendChild(openBtn);
-            card.appendChild(overlayBtns);
-            // Top runs locally and opens overlay immediately; bottom opens external Shadertoy
+            // wire events
             playTop.addEventListener('click', function(ev){ ev.stopPropagation(); ev.preventDefault(); try { if (!previewGL) startPreview(); } catch(e){} try { openOverlay(); } catch(e){} });
             openBtn.addEventListener('click', function(ev){ ev.stopPropagation(); ev.preventDefault(); var target = shadertoyUrl || (item && item.id ? ('https://www.shadertoy.com/view/' + item.id) : null); if (target) window.open(target, '_blank'); });
+            card.appendChild(overlayBtns);
+            // keep reference for later
+            try { card._overlayBtns = overlayBtns; } catch(e){}
+            return overlayBtns;
+        }
+
+        if (!isExternal && (shadertoyUrl || (item && item.id))) {
+            // append thumb and title first
+            card.appendChild(thumb); card.appendChild(title);
+            createOverlayButtons();
         } else {
             play.textContent = '▶'; thumb.appendChild(play); card.appendChild(thumb); card.appendChild(title);
         }
@@ -584,7 +593,12 @@
                 activePreview.staticImg = null;
             }
 
-            var c = document.createElement('canvas'); c.width = PRE_W; c.height = PRE_H; c.style.width = '100%'; c.style.height = PRE_H + 'px'; thumb.innerHTML = ''; thumb.appendChild(c);
+            var c = document.createElement('canvas'); c.width = PRE_W; c.height = PRE_H; c.style.width = '100%'; c.style.height = PRE_H + 'px';
+            // clear thumb contents but preserve overlay buttons on the card
+            try { thumb.innerHTML = ''; } catch(e){ }
+            thumb.appendChild(c);
+            // if overlay buttons were removed for any reason, recreate them so they remain available
+            try { if (card && (!card.querySelector || !card.querySelector('.shader-overlay-buttons'))) { createOverlayButtons(); } } catch(e){}
             previewGL = compileAndRun(c, item.code || item.shader || item.src || '');
             if (!previewGL) return;
             var io = new IntersectionObserver(function(entries){ entries.forEach(function(en){ if (previewGL && previewGL.resume && previewGL.stop){ if (en.isIntersecting) previewGL.resume(); else previewGL.stop(); } }); }, { threshold: 0.1 });

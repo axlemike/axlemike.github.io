@@ -670,6 +670,7 @@ body:not(.using-mouse) .sidenav .has-submenu:focus-within > .sidebarLink,
 .shader-card:hover .shader-play { background: rgba(255,255,255,0.95); color: #101010; border-color: rgba(0,0,0,0.06); transform: scale(1.03); }
 .shader-play-top:hover, .shader-play-bottom:hover { background: #fff; color: #101010; }
 .shader-card:hover .shader-badge { opacity: 0; transform: translateY(-6px); pointer-events:none; }
+.shader-link:hover .shader-badge { opacity: 0; transform: translateY(-6px); pointer-events:none; }
 
 /* Keep link-wrapped cards consistent when offline */
 .shader-link:hover .shader-card,
