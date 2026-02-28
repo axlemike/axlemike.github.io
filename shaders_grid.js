@@ -315,7 +315,25 @@
                 // create placeholder textures for image inputs; they'll be updated on load
                 inputs.forEach(function(entry){ if (entry.type === 'image') { var tex = gl.createTexture(); gl.bindTexture(gl.TEXTURE_2D, tex); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE); // 1x1 pixel placeholder
                     gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, 1,1,0, gl.RGBA, gl.UNSIGNED_BYTE, new Uint8Array([128,128,128,255])); entry.tex = tex; // load image async
-                    var img = new Image(); img.crossOrigin = 'anonymous'; img.onload = function(){ gl.bindTexture(gl.TEXTURE_2D, tex); try { gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, img); } catch(e) { try { gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, img); } catch(e2) { console.warn('texImage2D failed', e2); } } }; img.onerror = function(){ console.warn('Image load failed for', entry.url); }; if (entry.url) img.src = entry.url; } });
+                    var img = new Image(); img.crossOrigin = 'anonymous';
+                    function setTexFromImg() { gl.bindTexture(gl.TEXTURE_2D, tex); try { gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, img); } catch(e) { try { gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, img); } catch(e2) { console.warn('texImage2D failed', e2); } } }
+                    img.onload = function(){ setTexFromImg(); };
+                    img.onerror = function(){ /* we'll try alternate candidate urls below */ };
+                    // Try several candidate URLs so exported Shadertoy filepaths like
+                    // "/media/previz/buffer00.png" resolve when hosted inside this repo.
+                    if (entry.url) {
+                        var candidates = [];
+                        // raw filepath as provided
+                        candidates.push(entry.url);
+                        // if it starts with '/', try under the `shadertoys` folder
+                        if (entry.url.charAt(0) === '/') candidates.push('shadertoys' + entry.url);
+                        // try a relative path from the shadertoys folder
+                        candidates.push('shadertoys' + '/media/previz/' + (entry.url.split('/').pop()));
+                        // finally try just the basename in shadertoys folder
+                        candidates.push('shadertoys/' + (entry.url.split('/').pop()));
+                        (function tryNext(i){ if (i >= candidates.length) { console.warn('Image load failed for', entry.url); return; } img.src = candidates[i]; img.onerror = function(){ tryNext(i+1); }; img.onload = function(){ setTexFromImg(); }; })(0);
+                    }
+                } });
                 return { program: program, texA: texA, texB: texB, fbo: fbo, width: canvas.width, height: canvas.height, ping: 0, inputs: inputs };
             });
 
