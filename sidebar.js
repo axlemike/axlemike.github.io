@@ -30,128 +30,78 @@
         console.error('sidebar.js error', e);
     }
     
-    // Animated Projects label inside the sidebar Projects button
-    try
-    {
-        // find the .has-submenu that contains the Projects link (href ends with projects.html)
-        // prefer the one that actually contains a .submenu (so hover events fire where submenu appears)
-        var projectsMenu = null;
-        var projectsLink = null;
-        var candidates = document.querySelectorAll('.has-submenu');
-        candidates.forEach(function(c)
-        {
-            if (projectsMenu) return; // already found
-            var a = c.querySelector('.sidebarLink');
-            if (!a) return;
-            var href = a.getAttribute('href') || '';
-            var isProjectsHref = href.split('/').pop() === 'projects.html';
-            var hasSubmenu = !!c.querySelector('.submenu');
-            if (isProjectsHref && hasSubmenu)
-            {
-                projectsMenu = c;
-                projectsLink = a;
-            }
-        });
+    // Generalized handling for submenu parents (mark parent active when a child matches)
+    try {
+        var submenuParents = document.querySelectorAll('.has-submenu');
+        submenuParents.forEach(function(parent) {
+            var parentLink = parent.querySelector('.sidebarLink');
+            if (!parentLink) return;
 
-        // fallback: pick a candidate whose link href is projects.html
-        if (!projectsMenu)
-        {
-            candidates.forEach(function(c)
-            {
-                if (projectsMenu) return;
-                var a = c.querySelector('.sidebarLink');
-                if (!a) return;
-                var href = a.getAttribute('href') || '';
-                if (href.split('/').pop() === 'projects.html')
-                {
-                    projectsMenu = c;
-                    projectsLink = a;
-                }
-            });
-        }
+            // remember original label so we can restore it
+            if (!parentLink.dataset.orig) parentLink.dataset.orig = parentLink.textContent.trim();
 
-        // final fallback to first candidate
-        if (!projectsMenu && candidates.length)
-        {
-            projectsMenu = candidates[0];
-            projectsLink = projectsMenu.querySelector('.sidebarLink');
-        }
+            // collect submenu anchors scoped to this parent
+            var submenuAnchors = Array.prototype.slice.call(parent.querySelectorAll('.submenu a'));
 
-        if (projectsLink)
-        {
-            // mark this link as animated-capable
-            projectsLink.classList.add('has-animated');
+            // ensure submenu anchors never retain an active class
+            submenuAnchors.forEach(function(sa){ sa.classList.remove('active'); });
 
-            // determine the current subpage name by matching submenu href to the current filename
-            var currentText = null;
-            var submenuLinks = Array.prototype.slice.call(document.querySelectorAll('.submenu a'));
-            var activeSub = submenuLinks.find(function(a)
-            {
+            // if any submenu anchor matches current path, mark the parent active
+            var matchingChild = submenuAnchors.find(function(a){
                 var href = a.getAttribute('href') || '';
                 return href.split('/').pop() === path;
             });
-            if (activeSub) currentText = activeSub.textContent.trim();
 
-            // If there's no active submenu item but we're on a projects_* page, try to match by filename
-            var path3 = window.location.pathname.split('/').pop();
-            var onProjectSubpage = false;
-            if (!currentText)
-            {
-                if (path3 && path3.indexOf('projects_') === 0)
-                {
-                    // derive a nicer label from filename e.g. projects_github.html -> GitHub
-                    var name = path3.replace(/^projects_/, '').replace(/\.html$/i, '');
-                    name = name.replace(/[-_]/g, ' ');
-                    currentText = name.replace(/\b\w/g, function(ch){ return ch.toUpperCase(); });
-                    onProjectSubpage = true;
+            var parentHref = (parentLink.getAttribute('href') || '').split('/').pop();
+
+            // For non-Projects parents, show the matching child's label in the parent when on that subpage
+            if (parentHref !== 'projects.html') {
+                if (matchingChild) {
+                    parentLink.textContent = matchingChild.textContent.trim();
+                    parentLink.classList.add('active');
+                } else {
+                    parentLink.textContent = parentLink.dataset.orig;
+                    parentLink.classList.remove('active');
                 }
             }
-            else
-            {
-                // if a submenu item was marked active earlier (not by us), treat as on subpage
-                onProjectSubpage = true;
-            }
 
-            // default to Projects when we don't have a specific subpage
-            if (!currentText) currentText = 'Projects';
+            // Special behavior for Projects parent: animated title and projects_* filename mapping
+            if (parentHref === 'projects.html') {
+                parentLink.classList.add('has-animated');
 
-            // If we're on a projects subpage, mark the Projects label active so it uses active color
-            if (onProjectSubpage)
-            {
-                projectsLink.classList.add('active');
-            }
-            else
-            {
-                projectsLink.classList.remove('active');
-            }
+                var currentText = null;
+                if (matchingChild) currentText = matchingChild.textContent.trim();
 
-            // inject the animated spans if not already present
-            if (!projectsLink.querySelector('.title-current'))
-            {
-                projectsLink.innerHTML = '<span class="title-current">'+currentText+'</span>' +
-                                        '<span class="title-projects">Projects</span>';
-            }
-            else
-            {
-                // update existing text
-                var cur = projectsLink.querySelector('.title-current');
-                if (cur) cur.textContent = currentText;
-            }
+                var onProjectSubpage = false;
+                if (!currentText) {
+                    if (path && path.indexOf('projects_') === 0) {
+                        var name = path.replace(/^projects_/, '').replace(/\.html$/i, '');
+                        name = name.replace(/[-_]/g, ' ');
+                        currentText = name.replace(/\b\w/g, function(ch){ return ch.toUpperCase(); });
+                        onProjectSubpage = true;
+                    }
+                } else {
+                    onProjectSubpage = true;
+                }
 
-            // toggle the show-projects class on hover of the menu (so submenu hover shows "Projects")
-            projectsMenu.addEventListener('mouseenter', function()
-            {
-                projectsLink.classList.add('show-projects');
-            });
-            projectsMenu.addEventListener('mouseleave', function()
-            {
-                projectsLink.classList.remove('show-projects');
-            });
-        }
-    }
-    catch (e)
-    {
-        console.error('sidebar.js title animation error', e);
+                if (!currentText) currentText = 'Projects';
+
+                if (onProjectSubpage) parentLink.classList.add('active');
+                else parentLink.classList.remove('active');
+
+                if (!parentLink.querySelector('.title-current')) {
+                    parentLink.innerHTML = '<span class="title-current">' + currentText + '</span>' +
+                                           '<span class="title-projects">Projects</span>';
+                } else {
+                    var cur = parentLink.querySelector('.title-current'); if (cur) cur.textContent = currentText;
+                }
+
+                parent.addEventListener('mouseenter', function(){ parentLink.classList.add('show-projects'); });
+                parent.addEventListener('mouseleave', function(){ parentLink.classList.remove('show-projects'); });
+            }
+        });
+    } catch (e) {
+        console.error('sidebar.js submenu handling error', e);
     }
 }
 
@@ -160,40 +110,53 @@
 function loadSidebarAndInit()
 {
     // try to fetch sidebar.html; if it fails (file:// or network), inject a small fallback
-    var fallbackHtml = '<div class="sidenav">'
-        + '<a href="index.html" class="sidebarLink">Home</a>'
-        + '<a href="blog.html" class="sidebarLink">Blog</a>'
-        + '<a href="about.html" class="sidebarLink">About</a>'
-        + '<a href="resume.html" class="sidebarLink">Resume</a>'
-        + '<div class="has-submenu">'
-            + '<a href="projects.html" class="sidebarLink">Projects</a>'
-            + '<div class="submenu">'
-                + '<a href="projects_gameography.html">Gameography</a>'
-                + '<a href="projects_github.html">GitHub</a>'
-                + '<a href="projects_shadertoys.html">Shadertoys</a>'
-            + '</div>'
-        + '</div>'
-        + '<a href="contact.html" class="sidebarLink">Contact</a>'
-    + '</div>';
+        var fallbackHtml = `
+<div class="sidenav">
+    <a href="index.html" class="sidebarLink">Home</a>
+     <div class="has-submenu">
+        <a href="about.html" class="sidebarLink">About</a>
+        <div class="submenu">
+            <a href="bio.html">Bio</a>
+            <a href="resume.html">Resume</a>
+        </div>
+    </div>
+    <a href="blog.html" class="sidebarLink">Blog</a>
+    <div class="has-submenu">
+        <a href="projects.html" class="sidebarLink">Projects</a>
+        <div class="submenu">
+            <a href="projects_gameography.html">Gameography</a>
+            <a href="projects_github.html">GitHub</a>
+            <a href="projects_shadertoys.html">Shadertoys</a>
+        </div>
+    </div>
+    <a href="contact.html" class="sidebarLink">Contact</a>
+</div>
+`;
 
-    fetch('sidebar.html').then(function(resp){
+    fetch('sidebar.html').then(function(resp)
+    {
             if (!resp.ok) throw new Error('no sidebar fragment');
             return resp.text();
-        }).then(function(html){
-            try {
+        }).then(function(html)
+        {
+            try
+            {
                 document.querySelectorAll('.sidenav').forEach(function(el){ el.remove(); });
                 var tmp = document.createElement('div');
                 tmp.innerHTML = html.trim();
                 var newSide = tmp.firstElementChild;
                 if (newSide) document.body.insertBefore(newSide, document.body.firstChild);
-            } catch (e) {
+            }
+            catch (e)
+            {
                 console.warn('sidebar injection failed', e);
                 // fallback to HTML string
                 document.querySelectorAll('.sidenav').forEach(function(el){ el.remove(); });
                 var tmp2 = document.createElement('div'); tmp2.innerHTML = fallbackHtml;
                 document.body.insertBefore(tmp2.firstElementChild, document.body.firstChild);
             }
-        }).catch(function(){
+        }).catch(function()
+        {
             // fetch failed, inject fallback
             try {
                 document.querySelectorAll('.sidenav').forEach(function(el){ el.remove(); });

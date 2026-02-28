@@ -97,7 +97,7 @@ footer {
 
 /* When you mouse over the navigation links, change their color */
 .sidenav a:hover {
-    color: #f1f1f1;
+    color: #101010;
     animation: linkScale 1.3s ease-in-out;
     /*background-color: blue;*/
     animation-name: linkChange;
@@ -358,7 +358,7 @@ footer {
 /* Hover state for sidebar links */
 .sidebarLink:hover {
     background-color: #ccc;
-    color: #f1f1f1;
+    color: #101010;
 }
 
 /* When hovering or focusing within the submenu, highlight the parent Projects label
@@ -418,18 +418,19 @@ footer {
 .sidenav .has-submenu:focus-within > .sidebarLink,
 .sidenav .has-submenu .sidebarLink.projectsLabel:hover {
     background-color: #ccc !important;
-    color: #f1f1f1 !important;
+    color: #101010 !important;
 }
 
 /* Ensure animated title spans inside Projects label also pick up the hover color */
 .sidenav .has-submenu:hover > .sidebarLink .title-current,
 .sidenav .has-submenu:hover > .sidebarLink .title-projects {
-    color: #f1f1f1 !important;
+    color: #101010 !important;
 }
 
 .submenu a {
     background-color: transparent;
     color: #cfcfcf;
+    font-family: "Arial Narrow", Arial, sans-serif; /* match sidebar font */
     padding: 8px 10px;
     display: block;
     text-decoration: none;
@@ -461,9 +462,9 @@ footer {
     color: #f1f1f1;
 }
 
-.submenu a:hover {
-    background-color: #888;
-    color: #f1f1f1;
+.sidenav .has-submenu .submenu a:hover {
+    background-color: #ccc !important;
+    color: #101010 !important;
 }
 
 /* Do not visually highlight submenu items for the current page; keep them same as normal state */
