@@ -228,14 +228,25 @@
 
         // inline/simple shader preview (deferred compile)
         // keep title visually at the bottom (thumb above, title below)
-        play.textContent = '▶'; thumb.appendChild(play); card.appendChild(thumb); card.appendChild(title);
+        // If this shader can run locally but also has an external Shadertoy URL,
+        // provide two stacked buttons: top = run locally, bottom = open external.
+        if (!isExternal && shadertoyUrl) {
+            var playTop = document.createElement('button'); playTop.className = 'shader-play shader-play-top'; playTop.textContent = '▶';
+            var openBtn = document.createElement('button'); openBtn.className = 'shader-play shader-play-bottom'; openBtn.textContent = '↗';
+            thumb.appendChild(playTop); thumb.appendChild(openBtn); card.appendChild(thumb); card.appendChild(title);
+            // Top runs locally (in-card preview); bottom opens external Shadertoy
+            playTop.addEventListener('click', function(ev){ ev.stopPropagation(); if (!previewGL) startPreview(); });
+            openBtn.addEventListener('click', function(ev){ ev.stopPropagation(); if (shadertoyUrl) window.open(shadertoyUrl, '_blank'); });
+        } else {
+            play.textContent = '▶'; thumb.appendChild(play); card.appendChild(thumb); card.appendChild(title);
+        }
 
         // If this shader requires external resources, make the entire card a link to Shadertoy
         if (isExternal && shadertoyUrl) {
             var wrap = document.createElement('a');
             wrap.href = shadertoyUrl; wrap.target = '_blank'; wrap.rel = 'noopener'; wrap.className = 'shader-link';
             // remove play button behavior for external items
-            thumb.removeChild(play);
+            try { thumb.removeChild(play); } catch(e){}
             // show a small external indicator in the thumb
             var ext = document.createElement('div'); ext.className = 'shader-external'; ext.textContent = '↗'; ext.style.position = 'absolute'; ext.style.right = '8px'; ext.style.top = '8px'; ext.style.color = '#ddd'; thumb.appendChild(ext);
             wrap.appendChild(thumb); wrap.appendChild(title);
