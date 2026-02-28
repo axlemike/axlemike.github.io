@@ -62,7 +62,6 @@
                     var anyTex = textures && textures.some(function(t){ return !!t; });
                     if (requiresExt && !anyTex) {
                         // indicate we didn't handle it
-                        try { setTimeout(function(){ window.dispatchEvent(new CustomEvent('threeoverlay:failed')); },0); } catch(e){}
                         return;
                     }
 
@@ -71,7 +70,6 @@
                     var titleEl = document.createElement('div'); titleEl.className = 'shader-overlay-title'; titleEl.textContent = item.title || (item.raw && item.raw.info && item.raw.info.name) || 'Shader';
                     var mount = document.createElement('div'); mount.className = 'threejs-mount';
                     overlay.appendChild(close); overlay.appendChild(titleEl); overlay.appendChild(mount); document.body.appendChild(overlay);
-                    try { setTimeout(function(){ window.dispatchEvent(new CustomEvent('threeoverlay:opened')); },0); } catch(e){}
 
                     var width = Math.min(window.innerWidth * 0.9, 900);
                     var height = Math.round(width * 506/900);

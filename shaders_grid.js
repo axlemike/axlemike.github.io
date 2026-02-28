@@ -239,52 +239,25 @@
                 var handled = false;
                 try { handled = window.ThreeOverlay.open(item); } catch (e) { console.warn('ThreeOverlay failed', e); }
                 if (handled) return;
-
-                // If ThreeOverlay did not claim synchronous handling, listen for its async result
-                var done = false;
-                function cleanupListeners(){ try { window.removeEventListener('threeoverlay:opened', onThreeOpened); window.removeEventListener('threeoverlay:failed', onThreeFailed); } catch(e){} }
-                function onThreeOpened(){ if (done) return; done = true; cleanupListeners(); /* ThreeOverlay opened its own overlay, nothing to do */ }
-                function onThreeFailed(){ if (done) return; done = true; cleanupListeners(); createFallbackOverlay(); }
-                // Fallback timeout in case ThreeOverlay neither opens nor fails (safety)
-                var fallbackTimer = setTimeout(function(){ if (done) return; done = true; cleanupListeners(); createFallbackOverlay(); }, 1500);
-                function createFallbackOverlay(){ clearTimeout(fallbackTimer);
-                    var overlay = document.createElement('div'); overlay.className = 'shader-overlay';
-                    var close = document.createElement('button'); close.className = 'shader-overlay-close'; close.textContent = '✕';
-                    var titleEl = document.createElement('div'); titleEl.className = 'shader-overlay-title'; titleEl.innerHTML = safeText(item.title || item.name || 'Shader');
-                    var canvas = document.createElement('canvas'); canvas.className = 'shader-overlay-canvas';
-                    overlay.appendChild(close); overlay.appendChild(titleEl); overlay.appendChild(canvas); document.body.appendChild(overlay);
-                    try { activePreview = activePreview || {}; activePreview.overlayEl = overlay; } catch(e){}
-                    canvas.width = OVERLAY_W; canvas.height = OVERLAY_H; canvas.style.width = Math.min(window.innerWidth * 0.95, OVERLAY_W) + 'px'; canvas.style.height = (parseFloat(canvas.style.width) * OVERLAY_H / OVERLAY_W) + 'px';
-                    var ov = compileAndRun(canvas, item.code || item.shader || item.src || '');
-                    try { if (activePreview) activePreview.overlayPreview = ov; } catch(e){}
-                    var onK = function onK(e){ if (e.key === 'Escape'){ closeOverlay(); document.removeEventListener('keydown', onK); }};
-                    function closeOverlay(){ try { if (ov && ov.stop) ov.stop(); } catch(e){} try { document.removeEventListener('keydown', onK); } catch(e){} if (overlay && overlay.parentNode) overlay.parentNode.removeChild(overlay); }
-                    close.addEventListener('click', function(ev){ ev.stopPropagation(); closeOverlay(); });
-                    overlay.addEventListener('click', function(e){ var inner = canvas; if (e.target === overlay || (inner && !inner.contains(e.target))) { closeOverlay(); } });
-                    document.addEventListener('keydown', onK);
-                }
-                window.addEventListener('threeoverlay:opened', onThreeOpened);
-                window.addEventListener('threeoverlay:failed', onThreeFailed);
-                return;
             }
 
-            // If no ThreeOverlay defined, create the fallback overlay immediately
-            (function createAndShow(){
-                var overlay = document.createElement('div'); overlay.className = 'shader-overlay';
-                var close = document.createElement('button'); close.className = 'shader-overlay-close'; close.textContent = '✕';
-                var titleEl = document.createElement('div'); titleEl.className = 'shader-overlay-title'; titleEl.innerHTML = safeText(item.title || item.name || 'Shader');
-                var canvas = document.createElement('canvas'); canvas.className = 'shader-overlay-canvas';
-                overlay.appendChild(close); overlay.appendChild(titleEl); overlay.appendChild(canvas); document.body.appendChild(overlay);
+            var overlay = document.createElement('div'); overlay.className = 'shader-overlay';
+            var close = document.createElement('button'); close.className = 'shader-overlay-close'; close.textContent = '✕';
+            var titleEl = document.createElement('div'); titleEl.className = 'shader-overlay-title'; titleEl.innerHTML = safeText(item.title || item.name || 'Shader');
+            var canvas = document.createElement('canvas'); canvas.className = 'shader-overlay-canvas';
+            overlay.appendChild(close); overlay.appendChild(titleEl); overlay.appendChild(canvas); document.body.appendChild(overlay);
+                // mark overlay on activePreview so it can be removed when stopping
                 try { activePreview = activePreview || {}; activePreview.overlayEl = overlay; } catch(e){}
-                canvas.width = OVERLAY_W; canvas.height = OVERLAY_H; canvas.style.width = Math.min(window.innerWidth * 0.95, OVERLAY_W) + 'px'; canvas.style.height = (parseFloat(canvas.style.width) * OVERLAY_H / OVERLAY_W) + 'px';
-                var ov = compileAndRun(canvas, item.code || item.shader || item.src || '');
-                try { if (activePreview) activePreview.overlayPreview = ov; } catch(e){}
-                var onK = function onK(e){ if (e.key === 'Escape'){ closeOverlay(); document.removeEventListener('keydown', onK); }};
-                function closeOverlay(){ try { if (ov && ov.stop) ov.stop(); } catch(e){} try { document.removeEventListener('keydown', onK); } catch(e){} if (overlay && overlay.parentNode) overlay.parentNode.removeChild(overlay); }
-                close.addEventListener('click', function(ev){ ev.stopPropagation(); closeOverlay(); });
-                overlay.addEventListener('click', function(e){ var inner = canvas; if (e.target === overlay || (inner && !inner.contains(e.target))) { closeOverlay(); } });
-                document.addEventListener('keydown', onK);
-            })();
+            canvas.width = OVERLAY_W; canvas.height = OVERLAY_H; canvas.style.width = Math.min(window.innerWidth * 0.95, OVERLAY_W) + 'px'; canvas.style.height = (parseFloat(canvas.style.width) * OVERLAY_H / OVERLAY_W) + 'px';
+            var ov = compileAndRun(canvas, item.code || item.shader || item.src || '');
+            // store overlay-specific preview separately
+            try { if (activePreview) activePreview.overlayPreview = ov; } catch(e){}
+            var onK = function onK(e){ if (e.key === 'Escape'){ closeOverlay(); document.removeEventListener('keydown', onK); }};
+            function closeOverlay(){ try { if (ov && ov.stop) ov.stop(); } catch(e){} try { document.removeEventListener('keydown', onK); } catch(e){} if (overlay && overlay.parentNode) overlay.parentNode.removeChild(overlay); }
+            close.addEventListener('click', function(ev){ ev.stopPropagation(); closeOverlay(); });
+            // close on single click outside the canvas (backdrop or anywhere not inside the canvas)
+            overlay.addEventListener('click', function(e){ var inner = canvas; if (e.target === overlay || (inner && !inner.contains(e.target))) { closeOverlay(); } });
+            document.addEventListener('keydown', onK);
         }
 
         play.addEventListener('click', function(ev){ ev.stopPropagation(); if (!previewGL) startPreview(); openOverlay(); });
