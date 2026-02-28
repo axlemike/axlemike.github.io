@@ -13,21 +13,21 @@
     "date": "2026-02-28T18:09:47.776Z",
     "numShaders": 15,
     "shaders": [
-      { "info": { "id": "Xls3DM", "name": "A Simple Ray Tracer" } },
-      { "info": { "id": "XlfSzj", "name": "Simple Text Example" } },
-      { "info": { "id": "XtjSDh", "name": "Parallax Scrolling Star Field" } },
-      { "info": { "id": "XtSXzK", "name": "Noise Functions: 1" } },
-      { "info": { "id": "lstGzf", "name": "Mass Effect - Mass Relay" } },
-      { "info": { "id": "lst3W2", "name": "Shadertris" } },
-      { "info": { "id": "4sKGDG", "name": "PBR Editor" } },
-      { "info": { "id": "4ltGD8", "name": "Bomberman" } },
-      { "info": { "id": "MtV3Ry", "name": "Colored Mandelbrot Set" } },
-      { "info": { "id": "XtK3Rt", "name": "Silly Spiral" } },
-      { "info": { "id": "XlcSRf", "name": "2D Rope Example" } },
-      { "info": { "id": "4tVSzz", "name": "Open Sign" } },
-      { "info": { "id": "MlyXR1", "name": "Simple Shadowmap" } },
-      { "info": { "id": "ltGXRV", "name": "Parallax Mapping Comparision" } },
-      { "info": { "id": "4lKSzK", "name": "Worley/Cell Noise" } }
+      { "info": { "id": "Xls3DM", "name": "A Simple Ray Tracer" }, "hasMouse": true },
+      { "info": { "id": "XlfSzj", "name": "Simple Text Example" }, "hasMouse": true },
+      { "info": { "id": "XtjSDh", "name": "Parallax Scrolling Star Field" }, "hasMouse": true },
+      { "info": { "id": "XtSXzK", "name": "Noise Functions: 1" }, "hasMouse": true },
+      { "info": { "id": "lstGzf", "name": "Mass Effect - Mass Relay" }, "hasMouse": true },
+      { "info": { "id": "lst3W2", "name": "Shadertris" }, "hasMouse": true, "hasKeyboard": true },
+      { "info": { "id": "4sKGDG", "name": "PBR Editor" }, "hasMouse": true, "hasKeyboard": true },
+      { "info": { "id": "4ltGD8", "name": "Bomberman" }, "hasMouse": true, "hasKeyboard": true },
+      { "info": { "id": "MtV3Ry", "name": "Colored Mandelbrot Set" }, "hasMouse": true },
+      { "info": { "id": "XtK3Rt", "name": "Silly Spiral" }, "hasMouse": true },
+      { "info": { "id": "XlcSRf", "name": "2D Rope Example" }, "hasMouse": true },
+      { "info": { "id": "4tVSzz", "name": "Open Sign" }, "hasMouse": false },
+      { "info": { "id": "MlyXR1", "name": "Simple Shadowmap" }, "hasMouse": true },
+      { "info": { "id": "ltGXRV", "name": "Parallax Mapping Comparision" }, "hasMouse": true },
+      { "info": { "id": "4lKSzK", "name": "Worley/Cell Noise" }, "hasMouse": true }
     ]
   };
 };

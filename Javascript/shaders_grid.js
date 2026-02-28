@@ -231,6 +231,14 @@
             }
             if (!code) code = (entry.shader || entry.code || entry.src || '').toString();
 
+            // detect mouse/keyboard usage from code or inputs
+            var hasMouse = false;
+            var hasKeyboard = false;
+            try {
+                hasMouse = /\biMouse\b|\bmouse\b|\btouch\b/i.test(code);
+                hasKeyboard = hasInteractiveInput || /\bkey(code|down|up)\b|\bkeyboard\b|\bwhich\b|\bcharCode\b/i.test(code);
+            } catch (e) { hasMouse = false; hasKeyboard = hasInteractiveInput; }
+
             // final pass-level check: if aggregated code contains unsupported patterns
             if (!perPassExternal && requiresExternalResources(code)) perPassExternal = true;
 
@@ -253,6 +261,8 @@
                 raw: entry,
                 isExternal: perPassExternal || hasInteractiveInput,
                 isMultipass: (hasRenderpass && (entry.renderpass.length > 1 || hasBufferPass || hasBufferInput)) || hasMultipassTag
+                , hasMouse: !!hasMouse
+                , hasKeyboard: !!hasKeyboard
             };
             out.push(item);
         });
@@ -283,6 +293,16 @@
         var badge = document.createElement('div'); badge.className = 'shader-badge shader-badge-' + modeLabel; badge.textContent = modeLabel; 
         // append badge to the card (not the thumb) so it isn't removed when the thumb content is cleared
         try { card.appendChild(badge); } catch(e){ thumb.appendChild(badge); }
+
+        // Add small control badges for mouse / keyboard usage so users know input requirements
+        try {
+            if (item && item.hasMouse) {
+                var mb = document.createElement('div'); mb.className = 'shader-badge shader-badge-control shader-badge-mouse'; mb.textContent = '🖱'; mb.title = 'Mouse / touch input supported'; card.appendChild(mb);
+            }
+            if (item && item.hasKeyboard) {
+                var kb = document.createElement('div'); kb.className = 'shader-badge shader-badge-control shader-badge-keyboard'; kb.textContent = '⌨'; kb.title = 'Keyboard input supported'; card.appendChild(kb);
+            }
+        } catch(e) {}
 
         var shadertoyUrl = shadertoyUrlFor(item) || (item && item.url) || null;
         if (offlineMode) {
