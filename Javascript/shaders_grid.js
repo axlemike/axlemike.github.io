@@ -130,8 +130,17 @@
             var perPassExternal = false;
             var hasInteractiveInput = false;
             var hasRenderpass = !!(entry && entry.renderpass && Array.isArray(entry.renderpass) && entry.renderpass.length > 0);
+            var hasBufferPass = false;
+            var hasBufferInput = false;
+            var hasMultipassTag = false;
+
+            try {
+                var tags = (entry && entry.info && Array.isArray(entry.info.tags)) ? entry.info.tags : (entry && Array.isArray(entry.tags) ? entry.tags : []);
+                hasMultipassTag = tags.some(function(tag){ return /multipass|buffer/i.test(String(tag || '')); });
+            } catch (e) {}
             if (entry && entry.renderpass && Array.isArray(entry.renderpass)) {
                 entry.renderpass.forEach(function(rp){
+                    if (rp && rp.type && rp.type !== 'image') hasBufferPass = true;
                     // concatenate pass code so aggregated checks see all source text
                     if (rp && rp.code) { code += rp.code + '\n'; if (requiresExternalResources(rp.code)) perPassExternal = true; }
                     if (rp && Array.isArray(rp.inputs)) {
@@ -139,6 +148,7 @@
                             try {
                                 var t = (inp && inp.type) ? inp.type.toString() : '';
                                 if (/keyboard|audio|music|sound/i.test(t)) { hasInteractiveInput = true; perPassExternal = true; }
+                                if (/buffer/i.test(t)) hasBufferInput = true;
                                 // mouse/touch are supported through iMouse.
                                 // image/video/audio file inputs generally require external assets.
                                 if (inp && (inp.filepath || (typeof inp.src === 'string' && !/^\d+$/.test(inp.src)))) perPassExternal = true;
@@ -170,7 +180,7 @@
                 code: code,
                 raw: entry,
                 isExternal: perPassExternal || hasInteractiveInput,
-                isMultipass: hasRenderpass && entry.renderpass.length > 1
+                isMultipass: (hasRenderpass && (entry.renderpass.length > 1 || hasBufferPass || hasBufferInput)) || hasMultipassTag
             };
             out.push(item);
         });
@@ -193,7 +203,7 @@
     {
         var isExternal = !!item.isExternal;
         var isMultipass = !!item.isMultipass;
-        var modeLabel = isExternal ? 'external' : (isMultipass ? 'multipass' : 'single-pass');
+        var modeLabel = isMultipass ? 'multipass' : (isExternal ? 'external' : 'single-pass');
         var card = document.createElement('div'); card.className = 'shader-card';
         var title = document.createElement('div'); title.className = 'shader-title'; title.innerHTML = safeText(item.title || item.name || ('Shader ' + (idx+1)));
         var thumb = document.createElement('div'); thumb.className = 'shader-thumb';

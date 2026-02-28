@@ -1,6 +1,6 @@
 // Full fallback of `shadertoys/shaders_public.json` embedded for offline/file:// usage
 // Generated to allow the grid to show the full shader list when fetch() is unavailable.
-window.SHADERS_PUBLIC = {
+window.SHADERS_PUBLIC = (window.SHADERS_PUBLIC && window.SHADERS_PUBLIC.shaders && window.SHADERS_PUBLIC.shaders.length > 0) ? window.SHADERS_PUBLIC : {
  "userName": "AxleMike",
  "date": "2026-02-27T21:35:47.585Z",
  "numShaders": 11,
