@@ -112,8 +112,9 @@
     function requiresExternalResources(src)
     {
         if (!src) return false;
-        // treat channel/buffer/audio usage as external; mouse-only shaders are supported locally
-        return /iChannel|sampler2D|samplerCube|texture2D|iChannel0|iChannel1|iChannel2|iChannel3|buffer|sound|audio|iAudio|keyboard|keyCode/i.test(src);
+        // treat only truly unsupported interactive/audio inputs as external.
+        // iChannel usage can be satisfied by local multipass buffers.
+        return /sound|audio|iAudio|keyboard|keyCode/i.test(src);
     }
 
     function pickShaders(rawList)
@@ -128,6 +129,7 @@
             var code = '';
             var perPassExternal = false;
             var hasInteractiveInput = false;
+            var hasRenderpass = !!(entry && entry.renderpass && Array.isArray(entry.renderpass) && entry.renderpass.length > 0);
             if (entry && entry.renderpass && Array.isArray(entry.renderpass)) {
                 entry.renderpass.forEach(function(rp){
                     // concatenate pass code so aggregated checks see all source text
@@ -136,9 +138,10 @@
                         rp.inputs.forEach(function(inp){
                             try {
                                 var t = (inp && inp.type) ? inp.type.toString() : '';
-                                if (/keyboard|mouse|touch|audio|music|sound/i.test(t)) { hasInteractiveInput = true; perPassExternal = true; }
-                                // if an input contains a filepath/src, consider it external (image/buffer)
-                                if (inp && (inp.filepath || inp.src)) perPassExternal = true;
+                                if (/keyboard|audio|music|sound/i.test(t)) { hasInteractiveInput = true; perPassExternal = true; }
+                                // mouse/touch are supported through iMouse.
+                                // image/video/audio file inputs generally require external assets.
+                                if (inp && (inp.filepath || (typeof inp.src === 'string' && !/^\d+$/.test(inp.src)))) perPassExternal = true;
                             } catch (e) {}
                         });
                     }
@@ -146,8 +149,14 @@
             }
             if (!code) code = (entry.shader || entry.code || entry.src || '').toString();
 
-            // final pass-level check: if aggregated code contains external patterns
+            // final pass-level check: if aggregated code contains unsupported patterns
             if (!perPassExternal && requiresExternalResources(code)) perPassExternal = true;
+
+            // Single-pass shaders using channels typically depend on unavailable external assets.
+            // Multipass entries handle iChannel via local buffer pass outputs.
+            if (!hasRenderpass && /iChannel0|iChannel1|iChannel2|iChannel3|iChannel|sampler2D|samplerCube|texture2D/i.test(code)) {
+                perPassExternal = true;
+            }
 
             var hasInputs = false;
             if (entry && entry.renderpass && Array.isArray(entry.renderpass)) {
