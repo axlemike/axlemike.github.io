@@ -208,7 +208,9 @@
         var title = document.createElement('div'); title.className = 'shader-title'; title.innerHTML = safeText(item.title || item.name || ('Shader ' + (idx+1)));
         var thumb = document.createElement('div'); thumb.className = 'shader-thumb';
         var play = document.createElement('button'); play.className='shader-play';
-        var badge = document.createElement('div'); badge.className = 'shader-badge shader-badge-' + modeLabel; badge.textContent = modeLabel; thumb.appendChild(badge);
+        var badge = document.createElement('div'); badge.className = 'shader-badge shader-badge-' + modeLabel; badge.textContent = modeLabel; 
+        // append badge to the card (not the thumb) so it isn't removed when the thumb content is cleared
+        try { card.appendChild(badge); } catch(e){ thumb.appendChild(badge); }
 
         var shadertoyUrl = shadertoyUrlFor(item) || (item && item.url) || null;
         if (offlineMode) {

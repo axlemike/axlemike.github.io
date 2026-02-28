@@ -637,6 +637,8 @@ body:not(.using-mouse) .sidenav .has-submenu:focus-within > .sidebarLink,
 .shader-overlay-buttons { position:absolute; left:0; right:0; top:0; height:100%; z-index:20; display:block; opacity:0; pointer-events:none; transition: opacity 160ms ease; }
 .shader-card:hover .shader-overlay-buttons { opacity:1; pointer-events:auto; }
 .shader-badge{ position:absolute; left:8px; top:8px; font-size:11px; line-height:1; padding:4px 7px; border-radius:10px; text-transform:lowercase; letter-spacing:.2px; background:rgba(0,0,0,0.55); color:#d8d8d8; border:1px solid rgba(255,255,255,0.08); pointer-events:none; transition: opacity 160ms ease, transform 160ms ease; }
+.shader-badge { z-index: 15; }
+.shader-thumb img.shader-thumb-static { position:relative; z-index:0; display:block; width:100%; height:100%; }
 .shader-badge-external{ color:#f0f0f0; }
 .shader-badge-multipass{ color:#cfcfcf; }
 .shader-badge-single-pass{ color:#bdbdbd; }
