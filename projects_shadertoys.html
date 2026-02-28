@@ -15,67 +15,13 @@
     </header>
 
     <main class="main">
-        <button type="button" class="collapsible">Shadertris</button>
-        <div class="IndividualShaderToy">
-            <iframe width="640" height="360" frameborder="0" src="https://www.shadertoy.com/embed/lst3W2?gui=true&t=10&paused=true&muted=false" allowfullscreen=></iframe>
-            <br/>
-            <br/>
-            <br/>
-        </div>
+        <p>Interactive Shadertoy previews are available in the shader grid below. Click a card to launch a live preview or open the original on Shadertoy if external resources are required.</p>
 
-        <button type="button" class="collapsible">Open Sign</button>
-        <div class="IndividualShaderToy">
-            <iframe width="640" height="360" frameborder="0" src="https://www.shadertoy.com/embed/4tVSzz?gui=true&t=10&paused=true&muted=false" allowfullscreen></iframe>
-            <br/>
-            <br/>
-            <br/>
-        </div>
-
-        <button type="button" class="collapsible">Silly Spiral</button>
-        <div class="IndividualShaderToy">
-            <iframe width="640" height="360" frameborder="0" src="https://www.shadertoy.com/embed/XtK3Rt?gui=true&t=10&paused=true&muted=false" allowfullscreen></iframe>
-            <br/>
-            <br/>
-            <br/>
-        </div>
-
-        <button type="button" class="collapsible">Bomberman</button>
-        <div class="IndividualShaderToy">
-            <iframe width="640" height="360" frameborder="0" src="https://www.shadertoy.com/embed/4ltGD8?gui=true&t=10&paused=true&muted=false" allowfullscreen></iframe>
-            <br/>
-            <br/>
-            <br/>
-        </div>
-
-        <button type="button" class="collapsible">Parallax Mapping Comparision</button>
-        <div class="IndividualShaderToy">
-            <iframe width="640" height="360" frameborder="0" src="https://www.shadertoy.com/embed/ltGXRV?gui=true&t=10&paused=true&muted=false" allowfullscreen></iframe>
-            <br/>
-            <br/>
-            <br/>
-        </div>
-
-        <button type="button" class="collapsible">Simple Shadowmap</button>
-        <div class="IndividualShaderToy">
-            <iframe width="640" height="360" frameborder="0" src="https://www.shadertoy.com/embed/MlyXR1?gui=true&t=10&paused=true&muted=false" allowfullscreen></iframe>
-            <br/>
-            <br/>
-            <br/>
-        </div>
-
-        <button type="button" class="collapsible">Parallax Scrolling Star Field </button>
-        <div class="IndividualShaderToy">
-            <iframe width="640" height="360" frameborder="0" src="https://www.shadertoy.com/embed/XtjSDh?gui=true&t=10&paused=true&muted=false" allowfullscreen></iframe>
-            <br/>
-            <br/>
-            <br/>
-        </div>
+        <section class="shader-grid-section">
+            <h2>Shader Grid</h2>
+            <div id="shader-grid" class="shader-grid"></div>
+        </section>
     </main>
-
-    <section class="shader-grid-section">
-        <h2>Shader Grid</h2>
-        <div id="shader-grid" class="shader-grid"></div>
-    </section>
 
     <footer>
         <p>© 2025 Alexander Lemke. All rights reserved.</p>
@@ -86,36 +32,9 @@
             <li><a href="sitemap.html">Sitemap</a></li>
         </ul>
     </footer>
-
     <script src="sidebar.js"></script>
     <script src="https://unpkg.com/three@0.160.0/build/three.min.js"></script>
     <script src="threejs_previews.js"></script>
     <script src="shaders_grid.js"></script>
-</body>
-</html>
-
-<script>
-    var coll = document.getElementsByClassName("collapsible");
-
-    var totalHeight = 0;
-
-    for (var i = 0; i < coll.length; ++i)
-    {
-        coll[i].addEventListener("click", function()
-        {
-            this.classList.toggle("active");
-            var content = this.nextElementSibling;
-
-            if (content.style.maxHeight)
-            {
-                content.style.maxHeight = null;
-            }
-            else
-            {
-                content.style.maxHeight += content.scrollHeight + "px";
-            }
-        });
-    }
- </script>
 </body>
 </html>
