@@ -60,24 +60,25 @@
     function safeText(t){ return (t||'Untitled').replace(/</g,'&lt;'); }
 
     function fetchShaders(){
-        // shaders_public.json lives in the `shadertoys/` subfolder
-        // If running from `file:` or fetch fails, fall back to a small embedded index (shadertoys/shaders_index.js)
+        // Prefer the hosted JSON; if fetch fails (or file://) fall back to an embedded JS object
         return fetch('shadertoys/shaders_public.json').then(function(r){ return r.json(); }).catch(function(err){
+            // If a full fallback JSON was embedded as JS, use it (window.SHADERS_PUBLIC)
+            if (window && window.SHADERS_PUBLIC && window.SHADERS_PUBLIC.shaders) return window.SHADERS_PUBLIC;
             try {
                 var fallback = window.SHADERS_FALLBACK || [];
                 if (fallback && fallback.length) {
-                    // Normalize to same shape: top-level object with `shaders` array
                     return { shaders: fallback.map(function(f){ return { info: { name: f.title, id: f.id }, url: 'https://www.shadertoy.com/view/' + f.id }; }) };
                 }
             } catch (e) {}
-            return [];
+            return { shaders: [] };
         });
     }
 
     function requiresExternalResources(src)
     {
         if (!src) return false;
-        return /iChannel|sampler2D|samplerCube|texture2D|iChannel0|iChannel1|iChannel2|iChannel3|buffer|sound|audio|iAudio/i.test(src);
+        // treat mouse/keyboard/touch interactive shaders and any channel/buffer/audio usage as external
+        return /iChannel|sampler2D|samplerCube|texture2D|iChannel0|iChannel1|iChannel2|iChannel3|buffer|sound|audio|iAudio|iMouse|mouse|touch|keyboard|keyCode/i.test(src);
     }
 
     function pickShaders(rawList)
@@ -152,7 +153,8 @@
         }
 
         // inline/simple shader preview (deferred compile)
-        play.textContent = '▶'; thumb.appendChild(play); card.appendChild(title); card.appendChild(thumb);
+        // keep title visually at the bottom (thumb above, title below)
+        play.textContent = '▶'; thumb.appendChild(play); card.appendChild(thumb); card.appendChild(title);
 
         var previewGL = null;
 
