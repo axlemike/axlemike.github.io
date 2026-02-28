@@ -46,7 +46,7 @@
             // ensure submenu anchors never retain an active class
             submenuAnchors.forEach(function(sa){ sa.classList.remove('active'); });
 
-            // if any submenu anchor matches current path, mark the parent active
+            // find a matching child for current path
             var matchingChild = submenuAnchors.find(function(a){
                 var href = a.getAttribute('href') || '';
                 return href.split('/').pop() === path;
@@ -54,50 +54,51 @@
 
             var parentHref = (parentLink.getAttribute('href') || '').split('/').pop();
 
-            // For non-Projects parents, show the matching child's label in the parent when on that subpage
-            if (parentHref !== 'projects.html') {
-                if (matchingChild) {
-                    parentLink.textContent = matchingChild.textContent.trim();
-                    parentLink.classList.add('active');
-                } else {
-                    parentLink.textContent = parentLink.dataset.orig;
-                    parentLink.classList.remove('active');
-                }
-            }
+            // determine if we're on a subpage for this parent
+            var onSubpage = false;
+            if (matchingChild) onSubpage = true;
+            // special case: projects_* filenames map to Projects parent
+            if (!onSubpage && parentHref === 'projects.html' && path && path.indexOf('projects_') === 0) onSubpage = true;
 
-            // Special behavior for Projects parent: animated title and projects_* filename mapping
-            if (parentHref === 'projects.html') {
+            // If on a subpage, enable animated label behavior: show submenu label by default and
+            // reveal the parent label on hover (left-shift effect). Otherwise restore original label.
+            if (onSubpage) {
                 parentLink.classList.add('has-animated');
 
                 var currentText = null;
                 if (matchingChild) currentText = matchingChild.textContent.trim();
 
-                var onProjectSubpage = false;
-                if (!currentText) {
-                    if (path && path.indexOf('projects_') === 0) {
-                        var name = path.replace(/^projects_/, '').replace(/\.html$/i, '');
-                        name = name.replace(/[-_]/g, ' ');
-                        currentText = name.replace(/\b\w/g, function(ch){ return ch.toUpperCase(); });
-                        onProjectSubpage = true;
-                    }
-                } else {
-                    onProjectSubpage = true;
+                // projects_* filename -> derive nicer label
+                if (!currentText && parentHref === 'projects.html' && path && path.indexOf('projects_') === 0) {
+                    var name = path.replace(/^projects_/, '').replace(/\.html$/i, '');
+                    name = name.replace(/[-_]/g, ' ');
+                    currentText = name.replace(/\b\w/g, function(ch){ return ch.toUpperCase(); });
                 }
 
-                if (!currentText) currentText = 'Projects';
+                if (!currentText) currentText = parentLink.dataset.orig || '';
 
-                if (onProjectSubpage) parentLink.classList.add('active');
-                else parentLink.classList.remove('active');
+                // mark parent active when on the subpage
+                parentLink.classList.add('active');
 
+                // inject animated spans if missing
                 if (!parentLink.querySelector('.title-current')) {
+                    var def = parentLink.dataset.orig || '';
                     parentLink.innerHTML = '<span class="title-current">' + currentText + '</span>' +
-                                           '<span class="title-projects">Projects</span>';
+                                           '<span class="title-default">' + def + '</span>';
                 } else {
                     var cur = parentLink.querySelector('.title-current'); if (cur) cur.textContent = currentText;
+                    var def2 = parentLink.dataset.orig || '';
+                    var defEl = parentLink.querySelector('.title-default'); if (defEl) defEl.textContent = def2;
                 }
 
-                parent.addEventListener('mouseenter', function(){ parentLink.classList.add('show-projects'); });
-                parent.addEventListener('mouseleave', function(){ parentLink.classList.remove('show-projects'); });
+                parent.addEventListener('mouseenter', function(){ parentLink.classList.add('show-default'); });
+                parent.addEventListener('mouseleave', function(){ parentLink.classList.remove('show-default'); });
+            } else {
+                // not on subpage: restore original label and remove animated bits
+                if (parentLink.querySelector('.title-current')) {
+                    parentLink.textContent = parentLink.dataset.orig || parentLink.textContent;
+                }
+                parentLink.classList.remove('has-animated', 'show-default', 'active');
             }
         });
     } catch (e) {

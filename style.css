@@ -267,21 +267,21 @@ footer {
     /* initial vertical centering; horizontal movement uses translateX */
     transform: translateY(-50%);
     white-space: nowrap;
-    transition: transform 240ms cubic-bezier(.2,.9,.3,1), opacity 180ms ease;
+    transition: transform 240ms cubic-bezier(.2,.9,.3,1), opacity 180ms ease, color 160ms ease;
 }
 .sidebarLink.has-animated .title-current {
     transform: translateY(-50%) translateX(0);
     opacity: 1;
 }
-.sidebarLink.has-animated .title-projects {
+.sidebarLink.has-animated .title-default {
     transform: translateY(-50%) translateX(-100%);
     opacity: 0;
 }
-.sidebarLink.has-animated.show-projects .title-current {
+.sidebarLink.has-animated.show-default .title-current {
     transform: translateY(-50%) translateX(100%);
     opacity: 0;
 }
-.sidebarLink.has-animated.show-projects .title-projects {
+.sidebarLink.has-animated.show-default .title-default {
     transform: translateY(-50%) translateX(0);
     opacity: 1;
 }
@@ -353,6 +353,7 @@ footer {
     margin-bottom: 14px; /* increased spacing between sidebar links */
     min-height: 44px; /* consistent button height */
     line-height: 1.1;
+    transition: color 160ms ease, background-color 160ms ease;
 }
 
 /* Hover state for sidebar links */
@@ -423,7 +424,7 @@ footer {
 
 /* Ensure animated title spans inside Projects label also pick up the hover color */
 .sidenav .has-submenu:hover > .sidebarLink .title-current,
-.sidenav .has-submenu:hover > .sidebarLink .title-projects {
+.sidenav .has-submenu:hover > .sidebarLink .title-default {
     color: #101010 !important;
 }
 
@@ -448,7 +449,7 @@ footer {
    and ensure active submenu links keep a light color instead of switching to dark. */
 .submenu a {
     animation: none;
-    transition: background-color 0.15s ease, color 0.15s ease;
+    transition: background-color 160ms ease, color 160ms ease;
 }
 
 .submenu a.active {
