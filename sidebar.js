@@ -97,20 +97,32 @@
             var currentText = activeSub ? activeSub.textContent.trim() : null;
 
             // If there's no active submenu item but we're on a projects_* page, try to match by filename
+            var path3 = window.location.pathname.split('/').pop();
+            var onProjectSubpage = false;
             if (!currentText)
             {
-                var path3 = window.location.pathname.split('/').pop();
                 if (path3 && path3.indexOf('projects_') === 0)
-                    {
+                {
                     // derive a nicer label from filename e.g. projects_github.html -> GitHub
                     var name = path3.replace(/^projects_/, '').replace(/\.html$/i, '');
                     name = name.replace(/[-_]/g, ' ');
                     currentText = name.replace(/\b\w/g, function(ch){ return ch.toUpperCase(); });
+                    onProjectSubpage = true;
                 }
+            } else {
+                // if a submenu item was marked active earlier (not by us), treat as on subpage
+                onProjectSubpage = true;
             }
 
             // default to Projects when we don't have a specific subpage
             if (!currentText) currentText = 'Projects';
+
+            // If we're on a projects subpage, mark the Projects label active so it uses active color
+            if (onProjectSubpage) {
+                projectsLink.classList.add('active');
+            } else {
+                projectsLink.classList.remove('active');
+            }
 
             // inject the animated spans if not already present
             if (!projectsLink.querySelector('.title-current'))
