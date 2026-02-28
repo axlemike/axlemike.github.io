@@ -163,6 +163,50 @@ footer a:hover {
     font-size: inherit;
     color: inherit;
 }
+
+/* Page-specific link colors for `projects_gameography.html` */
+#gameography a,
+#gameography a:visited {
+    color: var(--submenu-link-color);
+    text-decoration: underline;
+}
+#gameography a:hover,
+#gameography a:focus {
+    color: var(--submenu-hover-text);
+    opacity: 0.95;
+}
+
+/* Make Gameography headings and lists match site visual style (page-scoped) */
+#gameography h2 {
+    color: var(--sidebar-text);
+    font-family: "Arial Narrow", Arial, sans-serif;
+    font-weight: 600;
+    font-size: 18px;
+    margin: 18px 0 8px;
+    padding-left: 10px;
+    border-left: 4px solid #3a3a3a;
+}
+
+#gameography ul {
+    margin: 6px 0 18px 1.2em;
+    padding-left: 0;
+}
+
+#gameography li {
+    margin-bottom: 6px;
+    color: var(--sidebar-text);
+}
+
+/* Page-specific link colors for `contact.html` (scoped via #contact) */
+#contact a,
+#contact a:visited {
+    color: var(--footer-link-color);
+    text-decoration: underline;
+}
+#contact a:hover,
+#contact a:focus {
+    color: var(--footer-link-hover);
+}
   
 /* On smaller screens, where height is less than 450px, change the style of the sidebar (less padding and a smaller font size) */
 @media screen and (max-height: 450px) {
