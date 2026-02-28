@@ -324,14 +324,21 @@
             }
 
             // uniform/state locations cache
-            passes.forEach(function(p){ if (p.program) { p.uRes = gl.getUniformLocation(p.program, 'iResolution'); p.uTime = gl.getUniformLocation(p.program, 'iTime'); } });
+            passes.forEach(function(p){ if (p.program) {
+                p.uRes = gl.getUniformLocation(p.program, 'iResolution');
+                p.uTime = gl.getUniformLocation(p.program, 'iTime');
+                p.uFrame = gl.getUniformLocation(p.program, 'iFrame');
+                p.uTimeDelta = gl.getUniformLocation(p.program, 'iTimeDelta');
+            } });
 
-            var start = performance.now(); var raf = null; var stopped = false; var frameN = 0;
+            var start = performance.now(); var raf = null; var stopped = false; var frameN = 0; var lastT = 0;
             function step() {
                 if (stopped) return;
                 resizeAll();
-                var t = (performance.now() - start) / 1000;
-                // run passes in order; bind previous pass outputs as iChannel0..3
+                var now = performance.now();
+                var t = (now - start) / 1000;
+                var dt = t - lastT; if (dt <= 0) dt = 0.000001; lastT = t;
+                // run passes in order; bind previous pass outputs as iChannel0..3 (or explicit inputs)
                 passes.forEach(function(p, idx){
                     if (!p.program) return;
                     // determine write texture (ping-pong)
@@ -365,9 +372,22 @@
                         }
                         if (!bound) gl.bindTexture(gl.TEXTURE_2D, null);
                         if (loc) gl.uniform1i(loc, ci);
+
+                        // try to set iChannelResolution[ci]
+                        if (bound) {
+                            var resLoc = gl.getUniformLocation(p.program, 'iChannelResolution[' + ci + ']');
+                            if (resLoc) {
+                                var srcW = p.width, srcH = p.height;
+                                var srcPassRef = (p.inputs && p.inputs[ci] && p.inputs[ci].type === 'pass') ? passes[p.inputs[ci].passIndex] : null;
+                                if (srcPassRef) { srcW = srcPassRef.width || srcW; srcH = srcPassRef.height || srcH; }
+                                gl.uniform3f(resLoc, srcW, srcH, 1.0);
+                            }
+                        }
                     }
                     if (p.uRes) gl.uniform2f(p.uRes, p.width, p.height);
                     if (p.uTime) gl.uniform1f(p.uTime, t);
+                    if (p.uFrame) gl.uniform1i(p.uFrame, frameN);
+                    if (p.uTimeDelta) gl.uniform1f(p.uTimeDelta, dt);
                     gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
                     // swap ping
                     p.ping = 1 - p.ping;
@@ -383,6 +403,8 @@
                     gl.useProgram(last.program);
                     var locC = gl.getUniformLocation(last.program, 'iChannel0'); if (locC) { gl.activeTexture(gl.TEXTURE0); gl.bindTexture(gl.TEXTURE_2D, texToShow); gl.uniform1i(locC, 0); }
                     if (last.uRes) gl.uniform2f(last.uRes, canvas.width, canvas.height);
+                    if (last.uTime) gl.uniform1f(last.uTime, t);
+                    if (last.uFrame) gl.uniform1i(last.uFrame, frameN);
                     var pos = quadBuffer; gl.bindBuffer(gl.ARRAY_BUFFER, pos); gl.enableVertexAttribArray(0); gl.vertexAttribPointer(0,2,gl.FLOAT,false,0,0);
                     gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
                 }
