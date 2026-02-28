@@ -127,7 +127,17 @@
         {
             var code = '';
             if (entry && entry.renderpass && Array.isArray(entry.renderpass)) {
-                entry.renderpass.forEach(function(rp){ if (rp && rp.code) code += rp.code + '\n'; });
+                    var hasInteractiveInput = false;
+                    entry.renderpass.forEach(function(rp){
+                        if (rp && Array.isArray(rp.inputs)) {
+                            rp.inputs.forEach(function(inp){
+                                try {
+                                    var t = (inp && inp.type) ? inp.type.toString() : '';
+                                    if (/keyboard|mouse|touch|audio|music|sound/i.test(t)) hasInteractiveInput = true;
+                                } catch (e) {}
+                            });
+                        }
+                    });
             }
             if (!code) code = (entry.shader || entry.code || entry.src || '').toString();
 
@@ -142,7 +152,7 @@
                 url: (entry && entry.info && entry.info.id) ? ('https://www.shadertoy.com/view/' + entry.info.id) : (entry.url || entry.view || null),
                 code: code,
                 raw: entry,
-                isExternal: hasInputs || requiresExternalResources(code)
+                    isExternal: hasInteractiveInput || requiresExternalResources(code)
             };
             out.push(item);
         });
