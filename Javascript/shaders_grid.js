@@ -207,7 +207,7 @@
         var isMultipass = !!item.isMultipass;
         var modeLabel = isMultipass ? 'multipass' : (isExternal ? 'external' : 'single-pass');
         var card = document.createElement('div'); card.className = 'shader-card';
-        var title = document.createElement('div'); title.className = 'shader-title'; title.innerHTML = safeText(item.title || item.name || ('Shader ' + (idx+1)));
+        var title = document.createElement('div'); title.className = 'shader-title shader-card-title'; title.innerHTML = safeText(item.title || item.name || ('Shader ' + (idx+1)));
         var thumb = document.createElement('div'); thumb.className = 'shader-thumb';
         var play = document.createElement('button'); play.className='shader-play';
         var badge = document.createElement('div'); badge.className = 'shader-badge shader-badge-' + modeLabel; badge.textContent = modeLabel; 
@@ -224,9 +224,10 @@
             linkWrap.className = 'shader-link';
             thumb.appendChild(play);
             play.textContent = '↗'; play.disabled = !shadertoyUrl;
+            // keep title inert (not part of the link)
             linkWrap.appendChild(thumb);
-            linkWrap.appendChild(title);
             card.appendChild(linkWrap);
+            card.appendChild(title);
             return card;
         }
 
@@ -238,12 +239,17 @@
             // avoid duplicated buttons
             try { var existing = card.querySelector && card.querySelector('.shader-overlay-buttons'); if (existing) return existing; } catch(e){}
             var playTop = document.createElement('button'); playTop.className = 'shader-play shader-play-top'; playTop.textContent = 'Run'; playTop.title = 'Run preview';
-            var openBtn = document.createElement('button'); openBtn.className = 'shader-play shader-play-bottom'; openBtn.textContent = 'External'; openBtn.title = 'Open on Shadertoy';
+            var openBtn = document.createElement('button'); openBtn.className = 'shader-play shader-play-bottom'; openBtn.textContent = 'Shadertoy'; openBtn.title = 'Open on Shadertoy';
             var overlayBtns = document.createElement('div'); overlayBtns.className = 'shader-overlay-buttons';
             overlayBtns.appendChild(playTop); overlayBtns.appendChild(openBtn);
             // wire events
             playTop.addEventListener('click', function(ev){ ev.stopPropagation(); ev.preventDefault(); try { if (!previewGL) startPreview(); } catch(e){} try { openOverlay(); } catch(e){} });
             openBtn.addEventListener('click', function(ev){ ev.stopPropagation(); ev.preventDefault(); var target = shadertoyUrl || (item && item.id ? ('https://www.shadertoy.com/view/' + item.id) : null); if (target) window.open(target, '_blank'); });
+            // highlight title when hovering top/bottom halves so the bottom name stands out
+            playTop.addEventListener('mouseenter', function(){ try{ card.classList.add('hover-top'); }catch(e){} });
+            playTop.addEventListener('mouseleave', function(){ try{ card.classList.remove('hover-top'); }catch(e){} });
+            openBtn.addEventListener('mouseenter', function(){ try{ card.classList.add('hover-bottom'); }catch(e){} });
+            openBtn.addEventListener('mouseleave', function(){ try{ card.classList.remove('hover-bottom'); }catch(e){} });
             card.appendChild(overlayBtns);
             // keep reference for later
             try { card._overlayBtns = overlayBtns; } catch(e){}
@@ -253,7 +259,9 @@
         if (!isExternal && (shadertoyUrl || (item && item.id))) {
             // append thumb and title first
             card.appendChild(thumb); card.appendChild(title);
-            createOverlayButtons();
+            var overlay = createOverlayButtons();
+            // Title should not trigger any navigation or preview — make it inert
+            try { title.addEventListener('click', function(ev){ ev.stopPropagation(); ev.preventDefault(); }); } catch(e){}
         } else {
             play.textContent = '▶'; thumb.appendChild(play); card.appendChild(thumb); card.appendChild(title);
         }
@@ -266,8 +274,11 @@
             try { thumb.removeChild(play); } catch(e){}
             // show a small external indicator in the thumb
             var ext = document.createElement('div'); ext.className = 'shader-external'; ext.textContent = '↗'; ext.style.position = 'absolute'; ext.style.right = '8px'; ext.style.top = '8px'; ext.style.color = '#ddd'; thumb.appendChild(ext);
-            wrap.appendChild(thumb); wrap.appendChild(title);
+            wrap.appendChild(thumb);
             card.appendChild(wrap);
+            // keep title inert (not part of the link)
+            try { title.addEventListener('click', function(ev){ ev.stopPropagation(); ev.preventDefault(); }); } catch(e){}
+            card.appendChild(title);
             return card;
         }
 
