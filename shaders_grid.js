@@ -124,7 +124,8 @@
         if (list && list.shaders && Array.isArray(list.shaders)) list = list.shaders;
 
         var out = [];
-        list.forEach(function(entry){
+        list.forEach(function(entry)
+        {
             var code = '';
             if (entry && entry.renderpass && Array.isArray(entry.renderpass)) {
                 entry.renderpass.forEach(function(rp){ if (rp && rp.code) code += rp.code + '\n'; });
