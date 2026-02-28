@@ -112,8 +112,8 @@
     function requiresExternalResources(src)
     {
         if (!src) return false;
-        // treat mouse/keyboard/touch interactive shaders and any channel/buffer/audio usage as external
-        return /iChannel|sampler2D|samplerCube|texture2D|iChannel0|iChannel1|iChannel2|iChannel3|buffer|sound|audio|iAudio|iMouse|mouse|touch|keyboard|keyCode/i.test(src);
+        // treat channel/buffer/audio usage as external; mouse-only shaders are supported locally
+        return /iChannel|sampler2D|samplerCube|texture2D|iChannel0|iChannel1|iChannel2|iChannel3|buffer|sound|audio|iAudio|keyboard|keyCode/i.test(src);
     }
 
     function pickShaders(rawList)
@@ -238,7 +238,7 @@
             if (!gl) { canvas.replaceWith(document.createTextNode('WebGL unavailable')); return null; }
             var vert = '\nattribute vec2 aPos;\nvoid main(){ gl_Position = vec4(aPos,0.,1.); }\n';
             var hasMainImage = /mainImage\s*\(/.test(src);
-            var frag = '\nprecision mediump float;\nuniform vec2 iResolution;\nuniform float iTime;\n' + src + '\n' + (hasMainImage ? '\nvoid main(){ vec2 fragCoord = gl_FragCoord.xy; vec4 col = vec4(0.0); mainImage(col, fragCoord); gl_FragColor = col; }\n' : '');
+            var frag = '\nprecision mediump float;\nuniform vec2 iResolution;\nuniform float iTime;\nuniform vec4 iMouse;\n' + src + '\n' + (hasMainImage ? '\nvoid main(){ vec2 fragCoord = gl_FragCoord.xy; vec4 col = vec4(0.0); mainImage(col, fragCoord); gl_FragColor = col; }\n' : '');
 
             function compile(type, srcText){ var s = gl.createShader(type); gl.shaderSource(s, srcText); gl.compileShader(s); if (!gl.getShaderParameter(s, gl.COMPILE_STATUS)) throw new Error(gl.getShaderInfoLog(s) || 'compile error'); return s; }
 
@@ -251,14 +251,48 @@
                 var aPos = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, aPos);
                 gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1,-1,1,-1,-1,1,1,1]), gl.STATIC_DRAW);
                 gl.enableVertexAttribArray(0); gl.vertexAttribPointer(0,2,gl.FLOAT,false,0,0);
-                var uRes = gl.getUniformLocation(prog,'iResolution'); var uTime = gl.getUniformLocation(prog,'iTime');
+                var uRes = gl.getUniformLocation(prog,'iResolution'); var uTime = gl.getUniformLocation(prog,'iTime'); var uMouse = gl.getUniformLocation(prog,'iMouse');
+
+                var mouse = { x: 0, y: 0, clickX: 0, clickY: 0, down: false };
+                function toShaderMouse(ev) {
+                    var rect = canvas.getBoundingClientRect();
+                    if (!rect || rect.width <= 0 || rect.height <= 0) return { x: 0, y: 0 };
+                    var localX = ev.clientX - rect.left;
+                    var localY = ev.clientY - rect.top;
+                    var x = Math.max(0, Math.min(rect.width, localX)) * (canvas.width / rect.width);
+                    var yTop = Math.max(0, Math.min(rect.height, localY)) * (canvas.height / rect.height);
+                    var y = canvas.height - yTop;
+                    return { x: x, y: y };
+                }
+
+                function onPointerDown(ev) {
+                    var p = toShaderMouse(ev);
+                    mouse.down = true;
+                    mouse.x = p.x; mouse.y = p.y;
+                    mouse.clickX = p.x; mouse.clickY = p.y;
+                }
+
+                function onPointerMove(ev) {
+                    var p = toShaderMouse(ev);
+                    mouse.x = p.x; mouse.y = p.y;
+                }
+
+                function onPointerUp(ev) {
+                    var p = toShaderMouse(ev);
+                    mouse.x = p.x; mouse.y = p.y;
+                    mouse.down = false;
+                }
+
+                canvas.addEventListener('pointerdown', onPointerDown);
+                canvas.addEventListener('pointermove', onPointerMove);
+                window.addEventListener('pointerup', onPointerUp);
 
                 function resize(){ var dpr = Math.max(1, window.devicePixelRatio || 1); var w = Math.max(1, Math.floor(canvas.clientWidth * dpr)); var h = Math.max(1, Math.floor(canvas.clientHeight * dpr)); if (canvas.width !== w || canvas.height !== h){ canvas.width = w; canvas.height = h; gl.viewport(0,0,w,h); } if (uRes) gl.uniform2f(uRes, canvas.width, canvas.height); }
 
                 var start = performance.now(); var rafId = null; var paused = false;
-                function frame(){ if (paused) return; resize(); var t = (performance.now() - start) / 1000; if (uTime) gl.uniform1f(uTime, t); gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4); rafId = requestAnimationFrame(frame); }
+                function frame(){ if (paused) return; resize(); var t = (performance.now() - start) / 1000; if (uTime) gl.uniform1f(uTime, t); if (uMouse) gl.uniform4f(uMouse, mouse.x, mouse.y, mouse.down ? mouse.clickX : -Math.abs(mouse.clickX), mouse.down ? mouse.clickY : -Math.abs(mouse.clickY)); gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4); rafId = requestAnimationFrame(frame); }
                 frame();
-                return { stop: function(){ paused = true; if (rafId) cancelAnimationFrame(rafId); }, resume: function(){ if (paused){ paused = false; start = performance.now(); requestAnimationFrame(frame); } }, gl: gl };
+                return { stop: function(){ paused = true; if (rafId) cancelAnimationFrame(rafId); canvas.removeEventListener('pointerdown', onPointerDown); canvas.removeEventListener('pointermove', onPointerMove); window.removeEventListener('pointerup', onPointerUp); }, resume: function(){ if (paused){ paused = false; start = performance.now(); requestAnimationFrame(frame); } }, gl: gl };
             } catch (err) { var pre = document.createElement('pre'); pre.className = 'shader-error'; pre.textContent = 'Compile error:\n' + (err.message || err); canvas.parentNode.replaceChild(pre, canvas); return null; }
         }
 
@@ -305,7 +339,7 @@
             var passes = raw.renderpass.map(function(r, idx){
                 var code = r && r.code ? r.code : (r.shader || '');
                 var hasMainImage = /mainImage\s*\(/.test(code);
-                var frag = '\nprecision highp float;\nuniform vec2 iResolution;\nuniform float iTime;\n' + code + '\n' + (hasMainImage ? '\nvoid main(){ vec2 fragCoord = gl_FragCoord.xy; vec4 col = vec4(0.0); mainImage(col, fragCoord); gl_FragColor = col; }\n' : '');
+                var frag = '\nprecision highp float;\nuniform vec2 iResolution;\nuniform float iTime;\nuniform vec4 iMouse;\n' + code + '\n' + (hasMainImage ? '\nvoid main(){ vec2 fragCoord = gl_FragCoord.xy; vec4 col = vec4(0.0); mainImage(col, fragCoord); gl_FragColor = col; }\n' : '');
                 var vert = '\nattribute vec2 aPos;\nvoid main(){ gl_Position = vec4(aPos,0.,1.); }\n';
                 var program = null;
                 try { program = makeProgram(vert, frag); } catch (e) { console.warn('Pass compile failed', e); }
@@ -375,9 +409,44 @@
             passes.forEach(function(p){ if (p.program) {
                 p.uRes = gl.getUniformLocation(p.program, 'iResolution');
                 p.uTime = gl.getUniformLocation(p.program, 'iTime');
+                p.uMouse = gl.getUniformLocation(p.program, 'iMouse');
                 p.uFrame = gl.getUniformLocation(p.program, 'iFrame');
                 p.uTimeDelta = gl.getUniformLocation(p.program, 'iTimeDelta');
             } });
+
+            var mouse = { x: 0, y: 0, clickX: 0, clickY: 0, down: false };
+            function toShaderMouse(ev) {
+                var rect = canvas.getBoundingClientRect();
+                if (!rect || rect.width <= 0 || rect.height <= 0) return { x: 0, y: 0 };
+                var localX = ev.clientX - rect.left;
+                var localY = ev.clientY - rect.top;
+                var x = Math.max(0, Math.min(rect.width, localX)) * (canvas.width / rect.width);
+                var yTop = Math.max(0, Math.min(rect.height, localY)) * (canvas.height / rect.height);
+                var y = canvas.height - yTop;
+                return { x: x, y: y };
+            }
+
+            function onPointerDown(ev) {
+                var p = toShaderMouse(ev);
+                mouse.down = true;
+                mouse.x = p.x; mouse.y = p.y;
+                mouse.clickX = p.x; mouse.clickY = p.y;
+            }
+
+            function onPointerMove(ev) {
+                var p = toShaderMouse(ev);
+                mouse.x = p.x; mouse.y = p.y;
+            }
+
+            function onPointerUp(ev) {
+                var p = toShaderMouse(ev);
+                mouse.x = p.x; mouse.y = p.y;
+                mouse.down = false;
+            }
+
+            canvas.addEventListener('pointerdown', onPointerDown);
+            canvas.addEventListener('pointermove', onPointerMove);
+            window.addEventListener('pointerup', onPointerUp);
 
             var start = performance.now(); var raf = null; var stopped = false; var frameN = 0; var lastT = 0;
             function step() {
@@ -434,6 +503,7 @@
                     }
                     if (p.uRes) gl.uniform2f(p.uRes, p.width, p.height);
                     if (p.uTime) gl.uniform1f(p.uTime, t);
+                    if (p.uMouse) gl.uniform4f(p.uMouse, mouse.x, mouse.y, mouse.down ? mouse.clickX : -Math.abs(mouse.clickX), mouse.down ? mouse.clickY : -Math.abs(mouse.clickY));
                     if (p.uFrame) gl.uniform1i(p.uFrame, frameN);
                     if (p.uTimeDelta) gl.uniform1f(p.uTimeDelta, dt);
                     gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
@@ -452,6 +522,7 @@
                     var locC = gl.getUniformLocation(last.program, 'iChannel0'); if (locC) { gl.activeTexture(gl.TEXTURE0); gl.bindTexture(gl.TEXTURE_2D, texToShow); gl.uniform1i(locC, 0); }
                     if (last.uRes) gl.uniform2f(last.uRes, canvas.width, canvas.height);
                     if (last.uTime) gl.uniform1f(last.uTime, t);
+                    if (last.uMouse) gl.uniform4f(last.uMouse, mouse.x, mouse.y, mouse.down ? mouse.clickX : -Math.abs(mouse.clickX), mouse.down ? mouse.clickY : -Math.abs(mouse.clickY));
                     if (last.uFrame) gl.uniform1i(last.uFrame, frameN);
                     var pos = quadBuffer; gl.bindBuffer(gl.ARRAY_BUFFER, pos); gl.enableVertexAttribArray(0); gl.vertexAttribPointer(0,2,gl.FLOAT,false,0,0);
                     gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
@@ -460,7 +531,7 @@
             }
 
             step();
-            return { stop: function(){ stopped = true; if (raf) cancelAnimationFrame(raf); }, resume: function(){ if (stopped) { stopped = false; start = performance.now(); step(); } }, gl: gl };
+            return { stop: function(){ stopped = true; if (raf) cancelAnimationFrame(raf); canvas.removeEventListener('pointerdown', onPointerDown); canvas.removeEventListener('pointermove', onPointerMove); window.removeEventListener('pointerup', onPointerUp); }, resume: function(){ if (stopped) { stopped = false; start = performance.now(); step(); } }, gl: gl };
         }
 
         function startPreview()

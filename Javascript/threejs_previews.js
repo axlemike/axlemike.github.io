@@ -34,14 +34,14 @@
 
     function buildMaterialFromCode(code, textures) {
         var hasMain = /mainImage\s*\(/.test(code);
-        var frag = 'precision mediump float;\nuniform vec2 iResolution;\nuniform float iTime;\n';
+        var frag = 'precision mediump float;\nuniform vec2 iResolution;\nuniform float iTime;\nuniform vec4 iMouse;\n';
         for (var i=0;i<4;i++) frag += 'uniform sampler2D iChannel' + i + ';\n';
         frag += '\n' + code + '\n';
         if (hasMain) {
             frag += '\nvoid main(){ vec2 fragCoord = gl_FragCoord.xy; vec4 col = vec4(0.0); mainImage(col, fragCoord); gl_FragColor = col; }\n';
         }
 
-        var uniforms = { iResolution: { value: new THREE.Vector2(800,600) }, iTime: { value: 0 } };
+        var uniforms = { iResolution: { value: new THREE.Vector2(800,600) }, iTime: { value: 0 }, iMouse: { value: new THREE.Vector4(0,0,0,0) } };
         for (var j=0;j<4;j++) uniforms['iChannel'+j] = { value: textures[j] || new THREE.Texture() };
 
         return new THREE.ShaderMaterial({ fragmentShader: frag, vertexShader: 'attribute vec2 position; void main(){ gl_Position = vec4(position,0.0,1.0); }', uniforms: uniforms });
@@ -85,15 +85,53 @@
 
                     var mat = buildMaterialFromCode(item.code, textures || []);
                     mat.uniforms.iResolution.value.set(width, height);
+
+                    var mouse = { x: 0, y: 0, clickX: 0, clickY: 0, down: false };
+                    function toShaderMouse(ev) {
+                        var rect = renderer.domElement.getBoundingClientRect();
+                        if (!rect || rect.width <= 0 || rect.height <= 0) return { x: 0, y: 0 };
+                        var localX = ev.clientX - rect.left;
+                        var localY = ev.clientY - rect.top;
+                        var x = Math.max(0, Math.min(rect.width, localX)) * (renderer.domElement.width / rect.width);
+                        var yTop = Math.max(0, Math.min(rect.height, localY)) * (renderer.domElement.height / rect.height);
+                        var y = renderer.domElement.height - yTop;
+                        return { x: x, y: y };
+                    }
+
+                    function onPointerDown(ev) {
+                        var p = toShaderMouse(ev);
+                        mouse.down = true;
+                        mouse.x = p.x; mouse.y = p.y;
+                        mouse.clickX = p.x; mouse.clickY = p.y;
+                    }
+
+                    function onPointerMove(ev) {
+                        var p = toShaderMouse(ev);
+                        mouse.x = p.x; mouse.y = p.y;
+                    }
+
+                    function onPointerUp(ev) {
+                        var p = toShaderMouse(ev);
+                        mouse.x = p.x; mouse.y = p.y;
+                        mouse.down = false;
+                    }
+
+                    renderer.domElement.addEventListener('pointerdown', onPointerDown);
+                    renderer.domElement.addEventListener('pointermove', onPointerMove);
+                    window.addEventListener('pointerup', onPointerUp);
+
                     var mesh = new THREE.Mesh(geom, mat); scene.add(mesh);
 
                     var start = performance.now(); var raf = null;
-                    function loop(){ mat.uniforms.iTime.value = (performance.now() - start)/1000; renderer.render(scene, camera); raf = requestAnimationFrame(loop); }
+                    function loop(){ mat.uniforms.iTime.value = (performance.now() - start)/1000; mat.uniforms.iMouse.value.set(mouse.x, mouse.y, mouse.down ? mouse.clickX : -Math.abs(mouse.clickX), mouse.down ? mouse.clickY : -Math.abs(mouse.clickY)); renderer.render(scene, camera); raf = requestAnimationFrame(loop); }
                     loop();
 
                     var onK = function onK(e){ if (e.key === 'Escape'){ if (overlay && overlay._threeCleanup) overlay._threeCleanup(); } };
                     function internalCleanup(){ try { if (raf) cancelAnimationFrame(raf); } catch(e){}
                         try { renderer.dispose(); } catch(e){}
+                        try { renderer.domElement.removeEventListener('pointerdown', onPointerDown); } catch(e){}
+                        try { renderer.domElement.removeEventListener('pointermove', onPointerMove); } catch(e){}
+                        try { window.removeEventListener('pointerup', onPointerUp); } catch(e){}
                         try { document.removeEventListener('keydown', onK); } catch(e){}
                     }
                     // attach a cleanup function to the overlay element so external code can force-close it
