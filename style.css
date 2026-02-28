@@ -24,6 +24,9 @@ h1 {
     --submenu-link-color: #cfcfcf;
     --submenu-hover-bg: #2b2b2b;
     --submenu-hover-text: #f1f1f1;
+    /* Footer link color variables */
+    --footer-link-color: #cfcfcf;
+    --footer-link-hover: #ffffff;
 }
 
 body {
@@ -66,6 +69,19 @@ footer {
         font-family: verdana;
         font-size: 12px;
     }
+}
+
+/* Footer links: always underlined for visibility, with clearer colors via variables */
+/* Use a separate setting group for footer visuals */
+footer a,
+footer a:link,
+footer a:visited {
+    color: var(--footer-link-color);
+    text-decoration: underline;
+}
+footer a:hover {
+    color: var(--footer-link-hover);
+    text-decoration: underline;
 }
 
 /* The sidebar menu */
