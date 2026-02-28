@@ -84,8 +84,8 @@ footer {
 }
 
 /* The navigation menu links (non-sidebarLink anchors) */
-.sidenav a:not(.sidebarLink) {
-    padding: 6px 8px 6px 16px;
+    height: 44px; /* consistent button height */
+    line-height: 1.1;
     text-decoration: none;
     font-size: 25px;
     color: #818181;
@@ -458,7 +458,7 @@ footer {
     margin-bottom: 14px; /* match spacing of .sidebarLink */
 }
 
-.has-submenu .sidebarLink { margin-bottom: 0; }
+.has-submenu .sidebarLink { margin-bottom: 0; height: 44px; }
 
 .has-submenu .submenu {
     /* Inner (dropdown) submenu — visually distinct group from outer sidebar */
