@@ -594,10 +594,13 @@ body:not(.using-mouse) .sidenav .has-submenu:focus-within > .sidebarLink,
 }
 
 /* overlay */
-.shader-overlay{ position:fixed; inset:0; display:flex; align-items:center; justify-content:center; background:rgba(0,0,0,0.75); z-index:2200; }
-.shader-overlay-canvas{ width:80vw; max-width:900px; height:auto; background:#000; border-radius:6px; }
-.shader-overlay-title{ color:#fff; font-weight:600; margin-bottom:12px; text-align:center; font-size:18px; max-width:90vw; }
+.shader-overlay{ position:fixed; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:12px; padding:20px; background:rgba(0,0,0,0.75); z-index:2200; overflow:auto; }
+.shader-overlay-canvas{ width:100%; max-width:900px; max-height:80vh; height:auto; background:#000; border-radius:6px; display:block; }
+.shader-overlay-title{ color:#fff; font-weight:600; margin:0; text-align:center; font-size:18px; max-width:90vw; }
 .shader-overlay-close{ position:fixed; top:18px; right:18px; z-index:2300; background:transparent; color:#fff; border:none; font-size:22px; cursor:pointer; }
+
+.threejs-mount{ width:100%; max-width:900px; max-height:80vh; display:block; }
+.threejs-mount canvas{ width:100% !important; height:auto !important; display:block; }
 
 @media (max-width:640px){
     .shader-thumb{ height:140px; }
