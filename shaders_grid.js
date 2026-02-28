@@ -112,9 +112,8 @@
     function requiresExternalResources(src)
     {
         if (!src) return false;
-        // treat only interactive/audio resources as external; iChannel/buffer/texture sampling
-        // will be handled by the multipass implementation where possible
-        return /sound|audio|iAudio|iMouse|mouse|touch|keyboard|keyCode/i.test(src);
+        // treat mouse/keyboard/touch interactive shaders and any channel/buffer/audio usage as external
+        return /iChannel|sampler2D|samplerCube|texture2D|iChannel0|iChannel1|iChannel2|iChannel3|buffer|sound|audio|iAudio|iMouse|mouse|touch|keyboard|keyCode/i.test(src);
     }
 
     function pickShaders(rawList)
@@ -132,7 +131,10 @@
             }
             if (!code) code = (entry.shader || entry.code || entry.src || '').toString();
 
-            // (multipass will handle renderpass inputs/iChannel bindings at runtime)
+            var hasInputs = false;
+            if (entry && entry.renderpass && Array.isArray(entry.renderpass)) {
+                entry.renderpass.forEach(function(rp){ if (rp && rp.inputs && rp.inputs.length) hasInputs = true; });
+            }
 
             var item = {
                 title: (entry && entry.info && entry.info.name) || entry.title || entry.name || entry._key || null,
@@ -140,7 +142,7 @@
                 url: (entry && entry.info && entry.info.id) ? ('https://www.shadertoy.com/view/' + entry.info.id) : (entry.url || entry.view || null),
                 code: code,
                 raw: entry,
-                isExternal: requiresExternalResources(code)
+                isExternal: hasInputs || requiresExternalResources(code)
             };
             out.push(item);
         });
