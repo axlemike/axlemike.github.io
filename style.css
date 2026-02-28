@@ -139,10 +139,10 @@ footer a:hover {
     color: grey;
 }
 
-/* Page-scoped typography scaffold for projects_gameography.html
-   Targets the page via #gameography so you can later tweak headers
-   and list styling here without affecting other pages. These rules
-   intentionally inherit current values so there is no visual change.
+/* Page-scoped typography scaffold for gameography.html
+    Targets the page via #gameography so you can later tweak headers
+    and list styling here without affecting other pages. These rules
+    intentionally inherit current values so there is no visual change.
 */
 #gameography {
     font-family: inherit;
@@ -164,7 +164,7 @@ footer a:hover {
     color: inherit;
 }
 
-/* Page-specific link colors for `projects_gameography.html` */
+/* Page-specific link colors for `gameography.html` */
 #gameography a,
 #gameography a:visited {
     color: var(--submenu-link-color);
