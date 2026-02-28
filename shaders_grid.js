@@ -9,6 +9,53 @@
     var PRE_W = 320, PRE_H = 180;
     var OVERLAY_W = 900, OVERLAY_H = 506;
     var offlineMode = (location.protocol === 'file:');
+    var activePreview = null; // { card, thumb, canvas, previewGL, io, overlayEl, staticImg }
+
+    function stopActivePreview(preserveLastFrame){
+        if (!activePreview) return;
+        try {
+            // if requested, capture last frame and replace canvas with an <img>
+            if (preserveLastFrame && activePreview.canvas && activePreview.previewGL) {
+                try {
+                    var canvas = activePreview.canvas;
+                    var data = canvas.toDataURL('image/png');
+                    var img = document.createElement('img');
+                    img.className = 'shader-thumb-static';
+                    img.src = data;
+                    img.style.width = canvas.style.width || '100%';
+                    img.style.height = canvas.style.height || canvas.height + 'px';
+                    // replace canvas with image in thumb
+                    if (canvas.parentNode) canvas.parentNode.replaceChild(img, canvas);
+                    // create a small restart/play button overlay on the static image
+                    try {
+                        var play2 = document.createElement('button'); play2.className = 'shader-play'; play2.textContent = '▶';
+                        // when clicked, restart preview and open overlay
+                        play2.addEventListener('click', function(ev){ ev.stopPropagation(); if (activePreview && activePreview.card && typeof activePreview.card._startPreview === 'function') { activePreview.card._startPreview(); activePreview.card._openOverlay(); } });
+                        if (img.parentNode) img.parentNode.appendChild(play2);
+                    } catch (e) {}
+                    activePreview.staticImg = img;
+                } catch (e) { /* ignore capture errors */ }
+            }
+        } catch (e) {}
+
+        try { if (activePreview.previewGL && activePreview.previewGL.stop) activePreview.previewGL.stop(); } catch(e){}
+        try { if (activePreview.io && activePreview.io.disconnect) activePreview.io.disconnect(); } catch(e){}
+        try { if (activePreview.overlayEl && activePreview.overlayEl.parentNode) activePreview.overlayEl.parentNode.removeChild(activePreview.overlayEl); } catch(e){}
+        // do not remove staticImg; leave it visible
+        // preserve card and thumb so the static image can restart the preview
+        var keepImg = activePreview.staticImg || null;
+        var keepCard = activePreview.card || null;
+        var keepThumb = activePreview.thumb || null;
+        activePreview = null;
+        if (keepImg) activePreview = { card: keepCard, thumb: keepThumb, staticImg: keepImg };
+    }
+
+    // stop preview when clicking outside the active card
+    document.addEventListener('click', function(e){
+        if (!activePreview || !activePreview.card) return;
+        if (activePreview.card.contains(e.target)) return; // click inside active card -> ignore
+        stopActivePreview(true);
+    }, true);
 
     function safeText(t){ return (t||'Untitled').replace(/</g,'&lt;'); }
 
@@ -142,11 +189,24 @@
         function startPreview()
         {
             if (previewGL) return;
-            var c = document.createElement('canvas'); c.width = PRE_W; c.height = PRE_H; c.style.width = PRE_W + 'px'; c.style.height = PRE_H + 'px'; thumb.innerHTML = ''; thumb.appendChild(c);
+            // stop any other preview/overlay, preserving their last frame
+            stopActivePreview(true);
+
+            // if there is a static image from a previous run, remove it before creating canvas
+            if (activePreview && activePreview.staticImg && activePreview.staticImg.parentNode) {
+                activePreview.staticImg.parentNode.removeChild(activePreview.staticImg);
+                activePreview.staticImg = null;
+            }
+
+            var c = document.createElement('canvas'); c.width = PRE_W; c.height = PRE_H; c.style.width = '100%'; c.style.height = PRE_H + 'px'; thumb.innerHTML = ''; thumb.appendChild(c);
             previewGL = compileAndRun(c, item.code || item.shader || item.src || '');
             if (!previewGL) return;
             var io = new IntersectionObserver(function(entries){ entries.forEach(function(en){ if (previewGL && previewGL.resume && previewGL.stop){ if (en.isIntersecting) previewGL.resume(); else previewGL.stop(); } }); }, { threshold: 0.1 });
             io.observe(c);
+            // record active preview
+            activePreview = { card: card, thumb: thumb, canvas: c, previewGL: previewGL, io: io };
+            // expose restart hooks so static-image play button can call back
+            try { card._startPreview = startPreview; card._openOverlay = openOverlay; } catch (e) {}
         }
 
         function openOverlay()
@@ -162,8 +222,11 @@
             var close = document.createElement('button'); close.className = 'shader-overlay-close'; close.textContent = '✕';
             var canvas = document.createElement('canvas'); canvas.className = 'shader-overlay-canvas';
             overlay.appendChild(close); overlay.appendChild(canvas); document.body.appendChild(overlay);
+                // mark overlay on activePreview so it can be removed when stopping
+                try { activePreview = activePreview || {}; activePreview.overlayEl = overlay; } catch(e){}
             canvas.width = OVERLAY_W; canvas.height = OVERLAY_H; canvas.style.width = Math.min(window.innerWidth * 0.95, OVERLAY_W) + 'px'; canvas.style.height = (parseFloat(canvas.style.width) * OVERLAY_H / OVERLAY_W) + 'px';
             var ov = compileAndRun(canvas, item.code || item.shader || item.src || '');
+                try { if (activePreview) activePreview.previewGL = ov; } catch(e){}
             function closeOverlay(){ try { if (ov && ov.stop) ov.stop(); } catch(e){} overlay.remove(); }
             close.addEventListener('click', closeOverlay); overlay.addEventListener('click', function(e){ if (e.target === overlay) closeOverlay(); }); document.addEventListener('keydown', function onK(e){ if (e.key === 'Escape'){ closeOverlay(); document.removeEventListener('keydown', onK); }});
         }

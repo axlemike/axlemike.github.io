@@ -536,11 +536,11 @@ body:not(.using-mouse) .sidenav .has-submenu:focus-within > .sidebarLink,
 /* Shader grid styles (deferred preview grid and overlay) */
 .shader-grid { padding: 12px 16px; }
 .shader-grid-inner { display:grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap:12px; }
-.shader-card { background: rgba(34,34,34,0.9); color:var(--submenu-link-color); border-radius:6px; overflow:hidden; box-shadow:0 1px 6px rgba(0,0,0,.5); }
-.shader-title { padding:8px 10px; font-size:14px; font-family:"Arial Narrow", Arial, sans-serif; }
-.shader-thumb { display:flex; align-items:center; justify-content:center; background:#0b0b0b; height:180px; position:relative; }
+.shader-card { background: rgba(34,34,34,0.9); color:var(--submenu-link-color); border-radius:6px; overflow:hidden; box-shadow:0 1px 6px rgba(0,0,0,.5); transition: background-color 220ms ease, color 220ms ease, transform 180ms ease, box-shadow 220ms ease; }
+.shader-title { padding:8px 10px; font-size:14px; font-family:"Arial Narrow", Arial, sans-serif; transition: color 200ms ease; }
+.shader-thumb { display:flex; align-items:center; justify-content:center; background:#0b0b0b; height:180px; position:relative; transition: background-color 220ms ease, filter 180ms ease; }
 .shader-thumb canvas{ width:100%; height:100%; display:block; }
-.shader-play{ position:absolute; width:44px; height:44px; border-radius:50%; background:rgba(0,0,0,0.5); color:#fff; border:1px solid rgba(255,255,255,0.06); font-size:16px; cursor:pointer; }
+.shader-play{ position:absolute; width:44px; height:44px; border-radius:50%; background:rgba(0,0,0,0.5); color:#fff; border:1px solid rgba(255,255,255,0.06); font-size:16px; cursor:pointer; transition: background-color 180ms ease, color 180ms ease, transform 120ms ease; }
 .shader-error{ color:#f88; padding:10px; font-size:12px; white-space:pre-wrap; }
 .shader-hint{ padding:6px 10px; font-size:12px; color:#bbb; }
 
@@ -557,6 +557,24 @@ body:not(.using-mouse) .sidenav .has-submenu:focus-within > .sidebarLink,
 }
 .shader-link:hover .shader-thumb {
     filter: brightness(1.04);
+}
+
+/* Hover highlight for shader cards (cards = tiles) */
+.shader-card:hover {
+    background: #f6f6f6;
+    color: #101010;
+    transform: translateY(-6px);
+    box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+}
+.shader-card:hover .shader-title { color: #101010; }
+.shader-card:hover .shader-thumb { background: #ffffff; }
+.shader-card:hover .shader-play { background: rgba(255,255,255,0.95); color: #101010; border-color: rgba(0,0,0,0.06); transform: scale(1.03); }
+
+/* Keep link-wrapped cards consistent when offline */
+.shader-link:hover .shader-card,
+.shader-link:focus .shader-card {
+    background: #f6f6f6;
+    color: #101010;
 }
 
 /* overlay */
