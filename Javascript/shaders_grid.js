@@ -245,11 +245,7 @@
             // wire events
             playTop.addEventListener('click', function(ev){ ev.stopPropagation(); ev.preventDefault(); try { if (!previewGL) startPreview(); } catch(e){} try { openOverlay(); } catch(e){} });
             openBtn.addEventListener('click', function(ev){ ev.stopPropagation(); ev.preventDefault(); var target = shadertoyUrl || (item && item.id ? ('https://www.shadertoy.com/view/' + item.id) : null); if (target) window.open(target, '_blank'); });
-            // highlight title when hovering top/bottom halves so the bottom name stands out
-            playTop.addEventListener('mouseenter', function(){ try{ card.classList.add('hover-top'); }catch(e){} });
-            playTop.addEventListener('mouseleave', function(){ try{ card.classList.remove('hover-top'); }catch(e){} });
-            openBtn.addEventListener('mouseenter', function(){ try{ card.classList.add('hover-bottom'); }catch(e){} });
-            openBtn.addEventListener('mouseleave', function(){ try{ card.classList.remove('hover-bottom'); }catch(e){} });
+            // no title hover class changes — keep title styling consistent
             card.appendChild(overlayBtns);
             // keep reference for later
             try { card._overlayBtns = overlayBtns; } catch(e){}

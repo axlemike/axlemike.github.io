@@ -675,9 +675,9 @@ body:not(.using-mouse) .sidenav .has-submenu:focus-within > .sidebarLink,
 }
 .shader-card:hover .shader-title { color: #101010; }
 .shader-card.hover-bottom .shader-title,
-.shader-card.hover-bottom:hover .shader-title { color: #101010; font-weight:700; background: rgba(255,255,255,0.9); padding:8px 10px; border-radius:0 0 6px 6px; }
+.shader-card.hover-bottom:hover .shader-title { /* removed special hover styling — keep title consistent */ }
 .shader-card.hover-top .shader-title,
-.shader-card.hover-top:hover .shader-title { color: #101010; font-weight:700; }
+.shader-card.hover-top:hover .shader-title { /* removed special hover styling — keep title consistent */ }
 .shader-card:hover .shader-thumb { background: #ffffff; }
 .shader-card:hover .shader-play:not(.shader-play-top):not(.shader-play-bottom) { background: rgba(255,255,255,0.95); color: #101010; border-color: rgba(0,0,0,0.06); transform: scale(1.03); }
 .shader-play-top:hover, .shader-play-bottom:hover { background: #fff; color: #101010; }
