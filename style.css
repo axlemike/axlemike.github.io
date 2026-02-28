@@ -590,8 +590,9 @@ body:not(.using-mouse) .sidenav .has-submenu:focus-within > .sidebarLink,
 
 .has-submenu .submenu a:hover,
 .has-submenu .submenu a:focus {
-    background-color: var(--submenu-hover-bg);
-    color: var(--submenu-hover-text);
+    /* Make inner submenu highlight more like the outer menu: light box with dark text */
+    background-color: #ffffff;
+    color: #101010;
 }
 
 /* Prevent the top-level .sidenav hover animation from affecting submenu links
@@ -613,8 +614,9 @@ body:not(.using-mouse) .sidenav .has-submenu:focus-within > .sidebarLink,
 }
 
 .sidenav .has-submenu .submenu a:hover {
-    background-color: var(--submenu-hover-bg) !important;
-    color: var(--submenu-hover-text) !important;
+    /* Ensure higher-specificity cases also use white highlight + dark text */
+    background-color: #ffffff !important;
+    color: #101010 !important;
 }
 
 /* Do not visually highlight submenu items for the current page; keep them same as normal state */
