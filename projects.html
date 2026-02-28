@@ -4,7 +4,7 @@
     <link rel="stylesheet" href="style.css">
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Contact</title>
+    <title>Projects</title>
     <style>
         /* Add your custom CSS here */
     </style>
@@ -12,32 +12,41 @@
 <body>
     <!-- Header section -->
     <header>
-        <h1>Contact</h1>
+        <h1>Projects</h1>
         <nav>
-        <script src="site_meta.js"></script>
             <!-- sidebar injected from sidebar.html -->
-        </nav>
-    </header>
-
-    <main class="main" id="contact">
-        <section id="contact-options">
-            <ul>
-                <li><a href="https://www.linkedin.com/in/axlemke">LinkedIn</a></li>
-                <li><a href="https://twitter.com/axlemke">Twitter</a></li>
-            </ul>
-        </section>
-    </main>
-
-    <footer>
-        <br/>
-        <p>© <script>document.write(window.SITE_YEAR||2026)</script> Alexander Lemke. All rights reserved.</p>
         <ul>
             <li><a href="https://github.com/axlemike">GitHub</a></li>
             <li><a href="https://www.linkedin.com/in/axlemke">LinkedIn</a></li>
             <li><a href="sitemap.html">Sitemap</a></li>
         </ul>
     </footer>
-
-    <script src="sidebar.js"></script>
 </body>
 </html>
+
+    <script src="sidebar.js"></script>
+
+<script>
+    var coll = document.getElementsByClassName("collapsible");
+
+    var totalHeight = 0;
+
+    for (var i = 0; i < coll.length; ++i)
+    {
+        coll[i].addEventListener("click", function()
+        {
+            this.classList.toggle("active");
+            var content = this.nextElementSibling;
+
+            if (content.style.maxHeight)
+            {
+                content.style.maxHeight = null;
+            }
+            else
+            {
+                content.style.maxHeight += content.scrollHeight + "px";
+            }
+        });
+    }
+ </script>
+
