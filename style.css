@@ -679,6 +679,8 @@ body:not(.using-mouse) .sidenav .has-submenu:focus-within > .sidebarLink,
 
 /* When a card was recently run, keep the badge visible above the paused result */
 .shader-card.show-badge .shader-badge { opacity: 1; transform: none; pointer-events: none; }
+/* But if the user hovers the card, the badge should still fade out */
+.shader-card.show-badge:hover .shader-badge { opacity: 0; transform: translateY(-6px); pointer-events: none; }
 
 /* Keep link-wrapped cards consistent when offline */
 .shader-link:hover .shader-card,
