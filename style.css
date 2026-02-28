@@ -544,6 +544,21 @@ body:not(.using-mouse) .sidenav .has-submenu:focus-within > .sidebarLink,
 .shader-error{ color:#f88; padding:10px; font-size:12px; white-space:pre-wrap; }
 .shader-hint{ padding:6px 10px; font-size:12px; color:#bbb; }
 
+/* Make offline grid links match theme instead of blue default anchors */
+.shader-link,
+.shader-link:visited {
+    color: var(--submenu-link-color);
+    text-decoration: none;
+    display: block;
+}
+.shader-link:focus {
+    outline: 2px solid rgba(255,255,255,0.06);
+    outline-offset: 2px;
+}
+.shader-link:hover .shader-thumb {
+    filter: brightness(1.04);
+}
+
 /* overlay */
 .shader-overlay{ position:fixed; inset:0; display:flex; align-items:center; justify-content:center; background:rgba(0,0,0,0.75); z-index:2200; }
 .shader-overlay-canvas{ width:80vw; max-width:900px; height:auto; background:#000; border-radius:6px; }

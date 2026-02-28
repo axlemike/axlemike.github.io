@@ -8,12 +8,23 @@
     var MAX = 12;
     var PRE_W = 320, PRE_H = 180;
     var OVERLAY_W = 900, OVERLAY_H = 506;
+    var offlineMode = (location.protocol === 'file:');
 
     function safeText(t){ return (t||'Untitled').replace(/</g,'&lt;'); }
 
     function fetchShaders(){
         // shaders_public.json lives in the `shadertoys/` subfolder
-        return fetch('shadertoys/shaders_public.json').then(function(r){ return r.json(); }).catch(function(){ return []; });
+        // If running from `file:` or fetch fails, fall back to a small embedded index (shadertoys/shaders_index.js)
+        return fetch('shadertoys/shaders_public.json').then(function(r){ return r.json(); }).catch(function(err){
+            try {
+                var fallback = window.SHADERS_FALLBACK || [];
+                if (fallback && fallback.length) {
+                    // Normalize to same shape: top-level object with `shaders` array
+                    return { shaders: fallback.map(function(f){ return { info: { name: f.title, id: f.id }, url: 'https://www.shadertoy.com/view/' + f.id }; }) };
+                }
+            } catch (e) {}
+            return [];
+        });
     }
 
     function requiresExternalResources(src)
@@ -77,17 +88,19 @@
         var thumb = document.createElement('div'); thumb.className = 'shader-thumb';
         var play = document.createElement('button'); play.className='shader-play';
 
-        if (isExternal)
-        {
-            play.textContent = '↗';
-            var url = item.url || shadertoyUrlFor(item.raw || item);
-            if (!url) play.disabled = true;
+        var shadertoyUrl = shadertoyUrlFor(item) || (item && item.url) || null;
+        if (offlineMode) {
+            // Render as a simple link card when offline/file:// — makes iteration easier
+            var linkWrap = document.createElement('a');
+            linkWrap.href = shadertoyUrl || '#';
+            linkWrap.target = '_blank';
+            linkWrap.rel = 'noopener';
+            linkWrap.className = 'shader-link';
             thumb.appendChild(play);
-            card.appendChild(title); card.appendChild(thumb);
-
-            play.addEventListener('click', function(ev){ ev.stopPropagation(); if (!url) return; window.open(url, '_blank', 'noopener'); });
-            var hint = document.createElement('div'); hint.className = 'shader-hint'; hint.textContent = url ? 'Opens on Shadertoy (external resources)' : 'External resources — no preview';
-            card.appendChild(hint);
+            play.textContent = '↗'; play.disabled = !shadertoyUrl;
+            linkWrap.appendChild(thumb);
+            linkWrap.appendChild(title);
+            card.appendChild(linkWrap);
             return card;
         }
 

@@ -95,7 +95,9 @@
                     document.addEventListener('keydown', function onK(e){ if (e.key === 'Escape'){ closeOverlay(); document.removeEventListener('keydown', onK); }});
                 });
 
-                return true; // we attempted to handle opening (async texture load may bail if missing)
+                // We do async handling (texture loads) so don't claim synchronous handling here.
+                // Return false so callers fall back immediately; the Three.js overlay may still open later.
+                return false;
             } catch (e) { console.error('ThreeOverlay error', e); return false; }
         }
     };
