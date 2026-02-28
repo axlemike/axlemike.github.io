@@ -42,6 +42,11 @@
         try { if (activePreview.overlayPreview && activePreview.overlayPreview.stop) activePreview.overlayPreview.stop(); } catch(e){}
         try { if (activePreview.io && activePreview.io.disconnect) activePreview.io.disconnect(); } catch(e){}
         try { if (activePreview.overlayEl && activePreview.overlayEl.parentNode) activePreview.overlayEl.parentNode.removeChild(activePreview.overlayEl); } catch(e){}
+        try {
+            // also remove any lingering overlays created by other modules (ThreeOverlay)
+            var overlays = document.querySelectorAll && document.querySelectorAll('.shader-overlay');
+            if (overlays && overlays.length) overlays.forEach(function(o){ try { if (o._threeCleanup) { o._threeCleanup(); } else if (o.parentNode) { o.parentNode.removeChild(o); } } catch(e){} });
+        } catch(e){}
         // do not remove staticImg; leave it visible
         // preserve card and thumb so the static image can restart the preview
         var keepImg = activePreview.staticImg || null;

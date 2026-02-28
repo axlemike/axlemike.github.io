@@ -674,6 +674,12 @@ body:not(.using-mouse) .sidenav .has-submenu:focus-within > .sidebarLink,
 .threejs-mount{ width:100%; max-width:900px; max-height:80vh; display:block; }
 .threejs-mount canvas{ width:100% !important; height:auto !important; display:block; }
 
+/* Overlay typography group - keep overlay title styling configurable for page-specific tweaks */
+:root {
+    --overlay-title-font: "Verdana", Arial, sans-serif;
+}
+.shader-overlay-title { font-family: var(--overlay-title-font); }
+
 @media (max-width:640px){
     .shader-thumb{ height:140px; }
     .shader-grid-inner{ grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); }

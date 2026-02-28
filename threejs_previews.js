@@ -91,16 +91,17 @@
                     function loop(){ mat.uniforms.iTime.value = (performance.now() - start)/1000; renderer.render(scene, camera); raf = requestAnimationFrame(loop); }
                     loop();
 
-                    var onK = function onK(e){ if (e.key === 'Escape'){ closeOverlay(); document.removeEventListener('keydown', onK); }};
-                    function closeOverlay(){
-                        try { if (raf) cancelAnimationFrame(raf); } catch(e){}
+                    var onK = function onK(e){ if (e.key === 'Escape'){ if (overlay && overlay._threeCleanup) overlay._threeCleanup(); } };
+                    function internalCleanup(){ try { if (raf) cancelAnimationFrame(raf); } catch(e){}
                         try { renderer.dispose(); } catch(e){}
                         try { document.removeEventListener('keydown', onK); } catch(e){}
-                        if (overlay && overlay.parentNode) overlay.parentNode.removeChild(overlay);
                     }
-                    close.addEventListener('click', function(ev){ ev.stopPropagation(); closeOverlay(); });
+                    // attach a cleanup function to the overlay element so external code can force-close it
+                    overlay._threeCleanup = function(){ internalCleanup(); if (overlay && overlay.parentNode) overlay.parentNode.removeChild(overlay); };
+
+                    close.addEventListener('click', function(ev){ ev.stopPropagation(); if (overlay && overlay._threeCleanup) overlay._threeCleanup(); });
                     // Close when clicking on the backdrop or anywhere outside the mount content (single click)
-                    overlay.addEventListener('click', function(e){ if (e.target === overlay || !mount.contains(e.target)) { closeOverlay(); } });
+                    overlay.addEventListener('click', function(e){ if (e.target === overlay || !mount.contains(e.target)) { if (overlay && overlay._threeCleanup) overlay._threeCleanup(); } });
                     document.addEventListener('keydown', onK);
                 });
 
