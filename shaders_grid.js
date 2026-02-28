@@ -287,7 +287,25 @@
                 var texA = gl.createTexture(); gl.bindTexture(gl.TEXTURE_2D, texA); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
                 var texB = gl.createTexture(); gl.bindTexture(gl.TEXTURE_2D, texB); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
                 var fbo = gl.createFramebuffer();
-                return { program: program, texA: texA, texB: texB, fbo: fbo, width: canvas.width, height: canvas.height, ping: 0 };
+                // handle inputs (iChannelN): allow external image URLs or pass references by index
+                var inputs = [];
+                if (r && Array.isArray(r.inputs)) {
+                    r.inputs.forEach(function(inp, ii){
+                        var entry = { type: 'empty', tex: null, src: inp };
+                        // if numeric, treat as pass index
+                        if (typeof inp === 'number') { entry.type = 'pass'; entry.passIndex = inp; }
+                        else if (inp && typeof inp === 'object') {
+                            if (typeof inp.src === 'number') { entry.type = 'pass'; entry.passIndex = inp.src; }
+                            else if (typeof inp.src === 'string' && (inp.src.indexOf('http') === 0 || inp.src.indexOf('/') >= 0)) { entry.type = 'image'; entry.url = inp.src; }
+                        } else if (typeof inp === 'string' && (inp.indexOf('http') === 0 || inp.indexOf('/') >= 0)) { entry.type = 'image'; entry.url = inp; }
+                        inputs.push(entry);
+                    });
+                }
+                // create placeholder textures for image inputs; they'll be updated on load
+                inputs.forEach(function(entry){ if (entry.type === 'image') { var tex = gl.createTexture(); gl.bindTexture(gl.TEXTURE_2D, tex); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE); // 1x1 pixel placeholder
+                    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, 1,1,0, gl.RGBA, gl.UNSIGNED_BYTE, new Uint8Array([128,128,128,255])); entry.tex = tex; // load image async
+                    var img = new Image(); img.crossOrigin = 'anonymous'; img.onload = function(){ gl.bindTexture(gl.TEXTURE_2D, tex); try { gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, img); } catch(e) { try { gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, img); } catch(e2) { console.warn('texImage2D failed', e2); } } }; img.onerror = function(){ console.warn('Image load failed for', entry.url); }; if (entry.url) img.src = entry.url; } });
+                return { program: program, texA: texA, texB: texB, fbo: fbo, width: canvas.width, height: canvas.height, ping: 0, inputs: inputs };
             });
 
             // initialize textures with empty data
@@ -325,19 +343,28 @@
                     gl.useProgram(p.program);
                     // bind quad
                     gl.bindBuffer(gl.ARRAY_BUFFER, quadBuffer); gl.enableVertexAttribArray(0); gl.vertexAttribPointer(0,2,gl.FLOAT,false,0,0);
-                    // bind previous pass outputs to texture units iChannel0..3 (heuristic)
+                    // bind inputs to texture units iChannel0..3
                     for (var ci=0; ci<4; ++ci) {
                         var unit = gl.TEXTURE0 + ci;
                         gl.activeTexture(unit);
-                        var srcPass = passes[idx - 1 - ci];
-                        if (srcPass) {
-                            var srcTex = (srcPass.ping === 0) ? srcPass.texA : srcPass.texB;
-                            gl.bindTexture(gl.TEXTURE_2D, srcTex);
-                            var loc = gl.getUniformLocation(p.program, 'iChannel' + ci);
-                            if (loc) gl.uniform1i(loc, ci);
-                        } else {
-                            gl.bindTexture(gl.TEXTURE_2D, null);
+                        var loc = gl.getUniformLocation(p.program, 'iChannel' + ci);
+                        var bound = false;
+                        // explicit inputs take precedence
+                        if (p.inputs && p.inputs[ci]) {
+                            var inp = p.inputs[ci];
+                            if (inp.type === 'image' && inp.tex) { gl.bindTexture(gl.TEXTURE_2D, inp.tex); bound = true; }
+                            else if (inp.type === 'pass' && typeof inp.passIndex === 'number') {
+                                var srcPass = passes[inp.passIndex];
+                                if (srcPass) { var srcTex = (srcPass.ping === 0) ? srcPass.texA : srcPass.texB; gl.bindTexture(gl.TEXTURE_2D, srcTex); bound = true; }
+                            }
                         }
+                        // fallback heuristic: use previous passes
+                        if (!bound) {
+                            var srcPass = passes[idx - 1 - ci];
+                            if (srcPass) { var srcTex = (srcPass.ping === 0) ? srcPass.texA : srcPass.texB; gl.bindTexture(gl.TEXTURE_2D, srcTex); bound = true; }
+                        }
+                        if (!bound) gl.bindTexture(gl.TEXTURE_2D, null);
+                        if (loc) gl.uniform1i(loc, ci);
                     }
                     if (p.uRes) gl.uniform2f(p.uRes, p.width, p.height);
                     if (p.uTime) gl.uniform1f(p.uTime, t);
