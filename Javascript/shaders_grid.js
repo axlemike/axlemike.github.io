@@ -231,12 +231,12 @@
         // If this shader can run locally but also has an external Shadertoy URL,
         // provide two stacked buttons: top = run locally, bottom = open external.
         if (!isExternal && (shadertoyUrl || (item && item.id))) {
-            var playTop = document.createElement('button'); playTop.className = 'shader-play shader-play-top'; playTop.textContent = '▶'; playTop.title = 'Run preview';
-            var openBtn = document.createElement('button'); openBtn.className = 'shader-play shader-play-bottom'; openBtn.textContent = '↗'; openBtn.title = 'Open on Shadertoy';
+            var playTop = document.createElement('button'); playTop.className = 'shader-play shader-play-top'; playTop.textContent = 'Run'; playTop.title = 'Run preview';
+            var openBtn = document.createElement('button'); openBtn.className = 'shader-play shader-play-bottom'; openBtn.textContent = 'External'; openBtn.title = 'Open on Shadertoy';
             thumb.appendChild(playTop); thumb.appendChild(openBtn); card.appendChild(thumb); card.appendChild(title);
             // Top runs locally (in-card preview); bottom opens external Shadertoy
-            playTop.addEventListener('click', function(ev){ ev.stopPropagation(); if (!previewGL) startPreview(); });
-            openBtn.addEventListener('click', function(ev){ ev.stopPropagation(); var target = shadertoyUrl || (item && item.id ? ('https://www.shadertoy.com/view/' + item.id) : null); if (target) window.open(target, '_blank'); });
+            playTop.addEventListener('click', function(ev){ ev.stopPropagation(); ev.preventDefault(); try { if (!previewGL) startPreview(); } catch(e){} try { openOverlay(); } catch(e){} });
+            openBtn.addEventListener('click', function(ev){ ev.stopPropagation(); ev.preventDefault(); var target = shadertoyUrl || (item && item.id ? ('https://www.shadertoy.com/view/' + item.id) : null); if (target) window.open(target, '_blank'); });
         } else {
             play.textContent = '▶'; thumb.appendChild(play); card.appendChild(thumb); card.appendChild(title);
         }
