@@ -211,6 +211,14 @@
                 hasMultipassTag = tags.some(function(tag){ return /multipass|buffer/i.test(String(tag || '')); });
             } catch (e) {}
             if (entry && entry.renderpass && Array.isArray(entry.renderpass)) {
+                // collect output ids so inputs that reference internal buffer outputs
+                // are considered local (not external). This handles multipass buffers
+                // that write/read between passes and may have published preview files.
+                var outputIds = {};
+                try {
+                    entry.renderpass.forEach(function(rp){ if (rp && rp.outputs && Array.isArray(rp.outputs)) { rp.outputs.forEach(function(o){ try { if (o && o.id) outputIds[o.id] = true; } catch(e){} }); } });
+                } catch(e){}
+
                 entry.renderpass.forEach(function(rp){
                     if (rp && rp.type && rp.type !== 'image') hasBufferPass = true;
                     // concatenate pass code so aggregated checks see all source text
@@ -223,7 +231,13 @@
                                 if (/buffer/i.test(t)) hasBufferInput = true;
                                 // mouse/touch are supported through iMouse.
                                 // image/video/audio file inputs generally require external assets.
-                                if (inp && (inp.filepath || (typeof inp.src === 'string' && !/^\d+$/.test(inp.src)))) perPassExternal = true;
+                                // However, if the input references a buffer output from this shader
+                                // (matching output id) treat it as internal and do not mark external.
+                                var isInternalBuffer = false;
+                                try { if (inp && inp.id && outputIds[inp.id]) isInternalBuffer = true; } catch(e){}
+                                if (inp && (inp.filepath || (typeof inp.src === 'string' && !/^\d+$/.test(inp.src)))) {
+                                    if (!isInternalBuffer && !(/buffer/i.test(t))) perPassExternal = true;
+                                }
                             } catch (e) {}
                         });
                     }
