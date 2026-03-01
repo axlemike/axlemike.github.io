@@ -203,15 +203,54 @@ function loadSidebarAndInit()
                 document.querySelectorAll('.sidenav').forEach(function(el){ el.remove(); });
                 var tmp3 = document.createElement('div'); tmp3.innerHTML = fallbackHtml;
                 var injected2 = tmp3.firstElementChild;
-                document.body.insertBefore(injected2, document.body.firstChild);
+                document.body.insertBefore(injected2, document.body.firstElementChild);
                 try { enforceSidebarStyles(injected2); } catch(e) { console.warn('enforceSidebarStyles failed', e); }
             } catch (e) {
                 console.error('sidebar fallback injection failed', e);
             }
         }).finally(function(){
             init();
+            try { injectBackgroundUI(); } catch(e){ console.warn('injectBackgroundUI failed', e); }
         });
     }
+
+// Inject fullscreen background canvas, overlay, toggle button and load shader script
+function injectBackgroundUI(){
+    if (document.getElementById('bg-canvas')) return;
+    try {
+        var canvas = document.createElement('canvas'); canvas.id = 'bg-canvas'; canvas.setAttribute('aria-hidden','true');
+        var overlay = document.createElement('div'); overlay.id = 'bg-overlay'; overlay.setAttribute('aria-hidden','true');
+        var btn = document.createElement('button'); btn.id = 'bg-toggle'; btn.className = 'bg-toggle';
+
+        // read persisted preference; default to disabled
+        var enabled = localStorage.getItem('bgShaderEnabled');
+        if (enabled === null) enabled = '0';
+        var isEnabled = enabled === '1';
+        btn.textContent = isEnabled ? 'Disable background' : 'Enable background';
+        btn.setAttribute('aria-pressed', isEnabled ? 'true' : 'false');
+
+
+        // insert canvas and overlay at top of body so they sit behind the content
+        document.body.insertBefore(canvas, document.body.firstChild);
+        document.body.insertBefore(overlay, document.body.firstChild);
+        // set initial visibility based on preference
+        canvas.style.display = isEnabled ? 'block' : 'none';
+        overlay.style.display = isEnabled ? 'block' : 'none';
+        // append toggle near end of body so it's on top
+        document.body.appendChild(btn);
+
+        
+
+        // lazy-load shader script if present
+        var script = document.createElement('script');
+        script.src = 'Javascript/background_shader.js';
+        script.defer = true;
+        document.body.appendChild(script);
+
+    } catch (e) {
+        console.warn('injectBackgroundUI error', e);
+    }
+}
 
     // Ensure sidebar element and body margin are correctly set even when CSS is missing
     function enforceSidebarStyles(sideEl) {

@@ -106,10 +106,18 @@
   const u_time = gl.getUniformLocation(program, 'u_time');
   const u_enabled = gl.getUniformLocation(program, 'u_enabled');
 
+  // start time and whether the shader is enabled (default: disabled)
   let start = performance.now();
   let enabled = localStorage.getItem('bgShaderEnabled');
-  if (enabled === null) enabled = '1';
+  if (enabled === null) enabled = '0';
   enabled = enabled === '1';
+
+  // persistent global start time so animation continues across page loads
+  let globalStart = parseInt(localStorage.getItem('bgShaderGlobalStart') || '0', 10) || 0;
+  if (!globalStart) {
+    globalStart = Date.now();
+    localStorage.setItem('bgShaderGlobalStart', String(globalStart));
+  }
 
   function resize(){
     const dpr = Math.min(2, window.devicePixelRatio || 1);
@@ -126,7 +134,8 @@
   resize();
 
   function render(){
-    const t = (performance.now() - start) * 0.001;
+    // compute time relative to a persistent global start so pages stay in-phase
+    const t = (Date.now() - globalStart) * 0.001;
     gl.useProgram(program);
     gl.bindVertexArray(vao);
     gl.uniform2f(u_res, canvas.width, canvas.height);
