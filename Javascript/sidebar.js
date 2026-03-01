@@ -199,8 +199,63 @@ function loadSidebarAndInit()
             }
         }).finally(function(){
             init();
+            try { injectBackgroundUI(); } catch(e){ console.warn('injectBackgroundUI failed', e); }
         });
     }
+
+// Inject fullscreen background canvas, overlay, toggle button and load shader script
+function injectBackgroundUI(){
+    if (document.getElementById('bg-canvas')) return;
+    try {
+        var canvas = document.createElement('canvas'); canvas.id = 'bg-canvas'; canvas.setAttribute('aria-hidden','true');
+        var overlay = document.createElement('div'); overlay.id = 'bg-overlay'; overlay.setAttribute('aria-hidden','true');
+        var btn = document.createElement('button'); btn.id = 'bg-toggle'; btn.className = 'bg-toggle';
+
+        // read persisted preference; default to disabled
+        var enabled = localStorage.getItem('bgShaderEnabled');
+        if (enabled === null) enabled = '0';
+        var isEnabled = enabled === '1';
+        // ensure a per-navigation seed exists to vary animations between pages
+        if (localStorage.getItem('bgShaderSeed') === null) localStorage.setItem('bgShaderSeed', '0');
+        btn.textContent = isEnabled ? 'Disable background' : 'Enable background';
+        btn.setAttribute('aria-pressed', isEnabled ? 'true' : 'false');
+
+        // insert canvas and overlay at top of body so they sit behind the content
+        // insert canvas and overlay at top of body so they sit behind the content
+        document.body.insertBefore(canvas, document.body.firstChild);
+        document.body.insertBefore(overlay, document.body.firstChild);
+        // set initial visibility based on preference
+        canvas.style.display = isEnabled ? 'block' : 'none';
+        overlay.style.display = isEnabled ? 'block' : 'none';
+        // append toggle near end of body so it's on top
+        document.body.appendChild(btn);
+        // bump seed on internal navigation so next page shows a different animation phase
+        document.addEventListener('click', function(e){
+            try {
+                var a = e.target.closest && e.target.closest('a');
+                if (!a) return;
+                var href = a.getAttribute('href') || a.dataset.href || '';
+                if (!href) return;
+                if (a.target && a.target === '_blank') return;
+                if (href.indexOf('#') === 0) return;
+                if (/^https?:\/\//i.test(href)) return;
+                if (/\.html$/i.test(href)) {
+                    var seed = parseInt(localStorage.getItem('bgShaderSeed')||'0', 10) || 0;
+                    seed = (seed + 1) % 1000000;
+                    localStorage.setItem('bgShaderSeed', seed.toString());
+                }
+            } catch (e) { }
+        }, true);
+
+        // dynamically load background script if not present
+        if (!document.querySelector('script[src="Javascript/background_shader.js"]')){
+            var s = document.createElement('script'); s.src = 'Javascript/background_shader.js';
+            document.body.appendChild(s);
+        }
+    } catch(e) {
+        console.warn('failed to inject background UI', e);
+    }
+}
 
     if (document.readyState === 'loading')
     {
