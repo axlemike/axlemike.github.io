@@ -378,7 +378,11 @@
                         (function tryNext(i){ if (i >= candidates.length) { console.warn('Image load failed for', entry.url); return; } img.src = candidates[i]; img.onerror = function(){ tryNext(i+1); }; img.onload = function(){ setTexFromImg(); }; })(0);
                     }
                 } });
-                return { program: program, texA: texA, texB: texB, fbo: fbo, width: canvas.width, height: canvas.height, ping: 0, inputs: inputs };
+                var passObj = { program: program, texA: texA, texB: texB, fbo: fbo, width: canvas.width, height: canvas.height, ping: 0, inputs: inputs };
+                // preserve original pass metadata so we can select the intended output later
+                passObj._meta = r || {};
+                passObj._passIndex = idx;
+                return passObj;
             });
 
             // initialize textures with empty data
@@ -468,7 +472,15 @@
                 // present last pass to screen
                 gl.bindFramebuffer(gl.FRAMEBUFFER, null);
                 gl.viewport(0,0,canvas.width, canvas.height);
-                var last = passes[passes.length-1];
+                // Choose which pass to present. Prefer a pass explicitly marked as type:'image' (or name 'Image').
+                var finalPassIndex = passes.length - 1;
+                for (var pi = passes.length - 1; pi >= 0; --pi) {
+                    try {
+                        var meta = passes[pi] && passes[pi]._meta;
+                        if (meta && (meta.type === 'image' || (typeof meta.name === 'string' && meta.name.toLowerCase() === 'image'))) { finalPassIndex = pi; break; }
+                    } catch (e) {}
+                }
+                var last = passes[finalPassIndex];
                 if (last && last.program) {
                     // render a simple textured quad using last.read texture
                     var texToShow = (last.ping === 0) ? last.texB : last.texA;
