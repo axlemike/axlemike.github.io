@@ -294,6 +294,7 @@
     {
         var isExternal = !!item.isExternal;
         var isMultipass = !!item.isMultipass;
+        var previewBlocked = isMultipass && !item.hasMouse; // block local preview for multipass shaders that do NOT use mouse (allow multipass+mouse previews)
         var modeLabel = isMultipass ? 'multipass' : (isExternal ? 'external' : 'single-pass');
         var card = document.createElement('div'); card.className = 'shader-card';
         var title = document.createElement('div'); title.className = 'shader-title shader-card-title'; title.innerHTML = safeText(item.title || item.name || ('Shader ' + (idx+1)));
@@ -353,7 +354,7 @@
             return overlayBtns;
         }
 
-        if (!isExternal && (shadertoyUrl || (item && item.id))) {
+        if (!isExternal && !previewBlocked && (shadertoyUrl || (item && item.id))) {
             // append thumb and title first
             card.appendChild(thumb); card.appendChild(title);
             var overlay = createOverlayButtons();
@@ -363,8 +364,8 @@
             play.textContent = '▶'; thumb.appendChild(play); card.appendChild(thumb); card.appendChild(title);
         }
 
-        // If this shader requires external resources, make the entire card a link to Shadertoy
-        if (isExternal && shadertoyUrl) {
+        // If this shader requires external resources (or we intentionally blocked preview), make the entire card a link to Shadertoy
+        if ((isExternal || previewBlocked) && shadertoyUrl) {
             var wrap = document.createElement('a');
             wrap.href = shadertoyUrl; wrap.target = '_blank'; wrap.rel = 'noopener'; wrap.className = 'shader-link';
             // remove play button behavior for external items
