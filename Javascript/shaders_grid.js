@@ -756,6 +756,20 @@
             var titleEl = document.createElement('div'); titleEl.className = 'shader-overlay-title'; titleEl.innerHTML = safeText(item.title || item.name || 'Shader');
             var canvas = document.createElement('canvas'); canvas.className = 'shader-overlay-canvas';
             overlay.appendChild(close); overlay.appendChild(titleEl); overlay.appendChild(canvas); document.body.appendChild(overlay);
+            // enforce inline styles to guarantee centering even if page CSS conflicts
+            try {
+                overlay.style.position = 'fixed';
+                overlay.style.left = '0'; overlay.style.top = '0'; overlay.style.right = '0'; overlay.style.bottom = '0';
+                overlay.style.display = 'flex'; overlay.style.flexDirection = 'column';
+                overlay.style.alignItems = 'center'; overlay.style.justifyContent = 'center';
+                overlay.style.padding = '20px'; overlay.style.gap = '12px'; overlay.style.overflow = 'auto';
+                overlay.style.background = 'rgba(0,0,0,0.75)'; overlay.style.zIndex = '2200';
+                // ensure the canvas respects viewport height and max-width
+                canvas.style.maxWidth = '900px';
+                canvas.style.maxHeight = '80vh';
+                canvas.style.width = '100%';
+                canvas.style.height = 'auto';
+            } catch(e) {}
                 // mark overlay on activePreview so it can be removed when stopping
                 try { activePreview = activePreview || {}; activePreview.overlayEl = overlay; } catch(e){}
             canvas.width = OVERLAY_W; canvas.height = OVERLAY_H; canvas.style.width = Math.min(window.innerWidth * 0.95, OVERLAY_W) + 'px'; canvas.style.height = (parseFloat(canvas.style.width) * OVERLAY_H / OVERLAY_W) + 'px';
