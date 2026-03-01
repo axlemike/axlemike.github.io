@@ -20,17 +20,19 @@
   // rotate 2D
   mat2 rot(float a){float c=cos(a), s=sin(a);return mat2(c,-s,s,c);} 
 
-  float triSDF(vec2 p){
+  float triSDF(vec2 p)
+  {
     // equilateral triangle SDF centered at origin
     const float k = sqrt(3.0);
     p.x = abs(p.x) - 1.0;
     p.y = p.y + 1.0/k;
     if( p.x + k*p.y > 0.0 ) p = vec2(p.x - k*p.y, -k*p.x - p.y)/2.0;
     p.x -= clamp(p.x, -2.0, 2.0);
-    return -length(p)*sign(p.y);
+    return -length(p) * sign(p.y);
   }
 
-  void main(){
+  void main()
+  {
     vec2 uv = vUv;
     vec2 p = (uv - 0.5) * vec2(u_res.x/u_res.y, 1.0);
 
@@ -40,14 +42,14 @@
     vec3 debug = mix(vec3(1.0,0.85,0.2), vec3(1.0,0.25,0.25), checker);
 
     // rotating triangle
-    float angle = u_time * 0.6;
+    float angle = u_time * 0.02;
     vec2 q = p * rot(angle);
-    float s = triSDF(q * 1.2);
+    float s = triSDF(q * 3.0);
     float tri = smoothstep(0.01, -0.01, s);
-    vec3 triColor = vec3(0.3, 0.6, 1.0) * (0.6 + 0.4 * sin(u_time * 2.0));
+    vec3 triColor = vec3(0.3, 0.6, 1.0) * (0.6 + 0.01 * sin(u_time * 20.0));
 
     // mix triangle over debug UVs
-    vec3 col = mix(debug * 0.15, triColor, tri);
+    vec3 col = mix(debug * 0.35, triColor, tri);
 
     // dark tint for readability
     col *= 0.45; // overall darkening
@@ -106,16 +108,27 @@
   const u_time = gl.getUniformLocation(program, 'u_time');
   const u_enabled = gl.getUniformLocation(program, 'u_enabled');
 
+  // per-page seed (bumped by navigation) to vary animation between pages
+  let seed = parseInt(localStorage.getItem('bgShaderSeed') || '0', 10) || 0;
+
   // start time and whether the shader is enabled (default: disabled)
-  let start = performance.now();
   let enabled = localStorage.getItem('bgShaderEnabled');
   if (enabled === null) enabled = '0';
   enabled = enabled === '1';
 
-  // per-page seed (bumped by navigation) to vary animation between pages
-  let seed = parseInt(localStorage.getItem('bgShaderSeed') || '0', 10) || 0;
-  // offset start time based on seed so different pages show different phases
-  start -= seed * 500;
+  // Persisted global base time (seconds) so animation phase/cycle carry across pages
+  // Use a raw base time that's independent of the per-navigation `seed` so
+  // rotation/pulse remain continuous even if `bgShaderSeed` is bumped.
+  let start;
+  const storedGlobalBaseT = parseFloat(localStorage.getItem('bgShaderGlobalT'));
+  if (!isNaN(storedGlobalBaseT)) {
+    start = performance.now() - storedGlobalBaseT * 1000;
+  } else {
+    start = performance.now();
+  }
+
+  // throttle localStorage writes
+  let lastPersist = 0;
 
   function resize(){
     const dpr = Math.min(2, window.devicePixelRatio || 1);
@@ -132,17 +145,18 @@
   resize();
 
   function render(){
-    // vary speed and direction slightly based on seed
-    const baseT = (performance.now() - start) * 0.001;
-    const speed = 0.5 + ((seed % 5) * 0.2);
-    const dir = (seed % 2 === 0) ? 1.0 : -1.0;
-    const t = baseT * speed * dir;
+    // base time in seconds (raw, independent of `seed`) — keeps phase continuous
+    const now = performance.now();
+    const baseT = (now - start) * 0.001;
+    const t = baseT;
     gl.useProgram(program);
     gl.bindVertexArray(vao);
     gl.uniform2f(u_res, canvas.width, canvas.height);
     gl.uniform1f(u_time, t);
     gl.uniform1f(u_enabled, enabled ? 1.0 : 0.0);
     gl.drawArrays(gl.TRIANGLES, 0, 3);
+    // persist the raw base time occasionally so next page restores the same phase
+    try { if (now - lastPersist > 250) { localStorage.setItem('bgShaderGlobalT', String(t)); lastPersist = now; } } catch(e) {}
     requestAnimationFrame(render);
   }
 
