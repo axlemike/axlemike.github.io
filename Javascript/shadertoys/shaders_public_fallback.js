@@ -24,7 +24,7 @@
       { "info": { "id": "MtV3Ry", "name": "Colored Mandelbrot Set" }, "hasMouse": true },
       { "info": { "id": "XtK3Rt", "name": "Silly Spiral" }, "hasMouse": true },
       { "info": { "id": "XlcSRf", "name": "2D Rope Example" }, "hasMouse": true },
-      { "info": { "id": "4tVSzz", "name": "Open Sign" }, "hasMouse": false },
+      { "info": { "id": "4tVSzz", "name": "Open Sign" }, "hasMouse": true },
       { "info": { "id": "MlyXR1", "name": "Simple Shadowmap" }, "hasMouse": true },
       { "info": { "id": "ltGXRV", "name": "Parallax Mapping Comparision" }, "hasMouse": true },
       { "info": { "id": "4lKSzK", "name": "Worley/Cell Noise" }, "hasMouse": true }

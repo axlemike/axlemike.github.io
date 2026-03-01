@@ -14,7 +14,7 @@ window.SHADERS_FALLBACK = [
     { title: 'Colored Mandelbrot Set', id: 'MtV3Ry', hasMouse: true },
     { title: 'Silly Spiral', id: 'XtK3Rt', hasMouse: true },
     { title: '2D Rope Example', id: 'XlcSRf', hasMouse: true },
-    { title: 'Open Sign', id: '4tVSzz', hasMouse: false },
+    { title: 'Open Sign', id: '4tVSzz', hasMouse: true },
     { title: 'Simple Shadowmap', id: 'MlyXR1', hasMouse: true },
     { title: 'Parallax Mapping Comparision', id: 'ltGXRV', hasMouse: true },
     { title: 'Worley/Cell Noise', id: '4lKSzK', hasMouse: true }

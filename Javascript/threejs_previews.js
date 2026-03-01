@@ -22,8 +22,14 @@
             var inputs = passes[0] && passes[0].inputs ? passes[0].inputs : [];
             if (!inputs.length) return finish();
 
+            // collect output ids to detect internal buffer references
+            var outputIds = {};
+            try { passes.forEach(function(rp){ if (rp && rp.outputs && Array.isArray(rp.outputs)) rp.outputs.forEach(function(o){ try { if (o && o.id) outputIds[o.id] = true; } catch(e){} }); }); } catch(e){}
+
             inputs.slice(0,4).forEach(function(inp, idx){
+                // only attempt to load published file inputs that are NOT internal buffer outputs
                 if (!inp || !inp.filepath || !inp.published) return;
+                if (inp.id && outputIds[inp.id]) return; // internal buffer reference — skip external load
                 pending++;
                 var url = 'shadertoys' + inp.filepath; // local path attempt
                 new THREE.TextureLoader().load(url, function(tex){ textures[idx] = tex; pending--; if (pending===0) finish(); }, function(){ pending--; if (pending===0) finish(); });
@@ -58,10 +64,13 @@
                 // should still be allowed to run in the preview. Only treat as requiring
                 // external resources when a renderpass input explicitly has a `filepath`
                 // and is marked `published`.
-                var hasExternalInputs = item.raw && item.raw.renderpass && item.raw.renderpass.some(function(r){
-                    return r.inputs && r.inputs.some(function(inp){ return inp && inp.filepath && inp.published; });
-                });
-                var requiresExt = !!hasExternalInputs;
+                    var hasExternalInputs = false;
+                    try {
+                        var outIds = {};
+                        (item.raw.renderpass || []).forEach(function(rp){ if (rp && rp.outputs && Array.isArray(rp.outputs)) rp.outputs.forEach(function(o){ if (o && o.id) outIds[o.id] = true; }); });
+                        hasExternalInputs = (item.raw.renderpass || []).some(function(rp){ return rp.inputs && rp.inputs.some(function(inp){ return inp && inp.filepath && inp.published && !(inp.id && outIds[inp.id]); }); });
+                    } catch(e) { hasExternalInputs = false; }
+                    var requiresExt = !!hasExternalInputs;
 
                 // Try to load textures if inputs exist; otherwise proceed.
                 tryLoadTexturesFromRenderpass(item, function(textures){
