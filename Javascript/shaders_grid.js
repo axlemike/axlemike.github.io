@@ -229,15 +229,9 @@
                                 var t = (inp && inp.type) ? inp.type.toString() : '';
                                 if (/keyboard|audio|music|sound/i.test(t)) { hasInteractiveInput = true; perPassExternal = true; }
                                 if (/buffer/i.test(t)) hasBufferInput = true;
-                                // mouse/touch are supported through iMouse.
-                                // image/video/audio file inputs generally require external assets.
-                                // However, if the input references a buffer output from this shader
-                                // (matching output id) treat it as internal and do not mark external.
-                                var isInternalBuffer = false;
-                                try { if (inp && inp.id && outputIds[inp.id]) isInternalBuffer = true; } catch(e){}
-                                if (inp && (inp.filepath || (typeof inp.src === 'string' && !/^\d+$/.test(inp.src)))) {
-                                    if (!isInternalBuffer && !(/buffer/i.test(t))) perPassExternal = true;
-                                }
+                                // buffer, texture, and cubemap inputs are handled locally by the
+                                // multipass renderer (buffers via FBO ping-pong, textures/cubemaps
+                                // loaded from the Shadertoy CDN). Only keyboard/audio are unsupported.
                             } catch (e) {}
                         });
                     }
@@ -308,7 +302,6 @@
     {
         var isExternal = !!item.isExternal;
         var isMultipass = !!item.isMultipass;
-        var previewBlocked = isMultipass && !item.hasMouse; // block local preview for multipass shaders that do NOT use mouse (allow multipass+mouse previews)
         var modeLabel = isMultipass ? 'multipass' : (isExternal ? 'external' : 'single-pass');
         var card = document.createElement('div'); card.className = 'shader-card';
         var title = document.createElement('div'); title.className = 'shader-title shader-card-title'; title.innerHTML = safeText(item.title || item.name || ('Shader ' + (idx+1)));
@@ -331,21 +324,6 @@
         } catch(e) {}
 
         var shadertoyUrl = shadertoyUrlFor(item) || (item && item.url) || null;
-        if (offlineMode) {
-            // Render as a simple link card when offline/file:// — makes iteration easier
-            var linkWrap = document.createElement('a');
-            linkWrap.href = shadertoyUrl || '#';
-            linkWrap.target = '_blank';
-            linkWrap.rel = 'noopener';
-            linkWrap.className = 'shader-link';
-            thumb.appendChild(play);
-            play.textContent = '↗'; play.disabled = !shadertoyUrl;
-            // keep title inert (not part of the link)
-            linkWrap.appendChild(thumb);
-            card.appendChild(linkWrap);
-            card.appendChild(title);
-            return card;
-        }
 
         // inline/simple shader preview (deferred compile)
         // keep title visually at the bottom (thumb above, title below)
@@ -368,7 +346,7 @@
             return overlayBtns;
         }
 
-        if (!isExternal && !previewBlocked && (shadertoyUrl || (item && item.id))) {
+        if (!isExternal && (shadertoyUrl || (item && item.id))) {
             // append thumb and title first
             card.appendChild(thumb); card.appendChild(title);
             var overlay = createOverlayButtons();
@@ -378,8 +356,8 @@
             play.textContent = '▶'; thumb.appendChild(play); card.appendChild(thumb); card.appendChild(title);
         }
 
-        // If this shader requires external resources (or we intentionally blocked preview), make the entire card a link to Shadertoy
-        if ((isExternal || previewBlocked) && shadertoyUrl) {
+        // If this shader requires external resources, make the entire card a link to Shadertoy
+        if (isExternal && shadertoyUrl) {
             var wrap = document.createElement('a');
             wrap.href = shadertoyUrl; wrap.target = '_blank'; wrap.rel = 'noopener'; wrap.className = 'shader-link';
             // remove play button behavior for external items
@@ -470,242 +448,315 @@
             } catch (err) { var pre = document.createElement('pre'); pre.className = 'shader-error'; pre.textContent = 'Compile error:\n' + (err.message || err); canvas.parentNode.replaceChild(pre, canvas); return null; }
         }
 
-        // Multipass implementation (simplified): create per-pass programs and FBOs,
-        // bind previous-pass textures as iChannel0..3, and run passes in order.
+        // Multipass implementation: runs buffer passes into FBOs then the image pass
+        // directly to screen.  Execution order is always buffers-first, image-last so
+        // the image pass always reads the freshest buffer outputs.
         function compileAndRunMultipass(canvas, raw)
         {
             // Prefer WebGL2 for reliable float render targets
             var gl = canvas.getContext('webgl2', { antialias: false }) || canvas.getContext('webgl', { antialias: false }) || canvas.getContext('experimental-webgl');
             if (!gl) { canvas.replaceWith(document.createTextNode('WebGL unavailable')); return null; }
 
-            var isWebGL2 = !!canvas.getContext('webgl2');
-            var extColorFloat = null;
+            var isWebGL2 = (typeof WebGL2RenderingContext !== 'undefined') && (gl instanceof WebGL2RenderingContext);
             if (!isWebGL2) {
-                extColorFloat = gl.getExtension('EXT_color_buffer_float') || gl.getExtension('WEBGL_color_buffer_float');
+                var extColorFloat = gl.getExtension('EXT_color_buffer_float') || gl.getExtension('WEBGL_color_buffer_float');
                 if (!extColorFloat) {
-                    // graceful degradation: fall back to single-pass
                     console.warn('Floating point FBO not available; falling back to single-pass');
                     return compileAndRun(canvas, raw.renderpass.map(function(r){ return r.code || ''; }).join('\n'));
                 }
             }
 
-            // helpers
-            function makeProgram(vsSrc, fsSrc) {
-                function compile(type, srcText){ var s = gl.createShader(type); gl.shaderSource(s, srcText); gl.compileShader(s); if (!gl.getShaderParameter(s, gl.COMPILE_STATUS)) throw new Error(gl.getShaderInfoLog(s) || 'compile error'); return s; }
-                var vs = compile(gl.VERTEX_SHADER, vsSrc);
-                var fs = compile(gl.FRAGMENT_SHADER, fsSrc);
-                var p = gl.createProgram(); gl.attachShader(p, vs); gl.attachShader(p, fs); gl.bindAttribLocation(p,0,'aPos'); gl.linkProgram(p);
+            // --- helpers ---
+            var vert = 'attribute vec2 aPos; void main(){ gl_Position = vec4(aPos,0.,1.); }';
+            // Shared GLSL header: all standard Shadertoy uniforms + iChannel samplers
+            var glslHeader = [
+                'precision highp float;',
+                'uniform vec2  iResolution;',
+                'uniform float iTime;',
+                'uniform float iTimeDelta;',
+                'uniform int   iFrame;',
+                'uniform vec4  iMouse;',
+                'uniform sampler2D iChannel0;',
+                'uniform sampler2D iChannel1;',
+                'uniform sampler2D iChannel2;',
+                'uniform sampler2D iChannel3;',
+                'uniform vec3  iChannelResolution[4];'
+            ].join('\n') + '\n';
+
+            function compileShader(type, src) {
+                var s = gl.createShader(type); gl.shaderSource(s, src); gl.compileShader(s);
+                if (!gl.getShaderParameter(s, gl.COMPILE_STATUS)) throw new Error(gl.getShaderInfoLog(s) || 'compile error');
+                return s;
+            }
+            function makeProgram(fsSrc) {
+                var vs = compileShader(gl.VERTEX_SHADER, vert);
+                var fs = compileShader(gl.FRAGMENT_SHADER, fsSrc);
+                var p = gl.createProgram(); gl.attachShader(p, vs); gl.attachShader(p, fs);
+                gl.bindAttribLocation(p, 0, 'aPos'); gl.linkProgram(p);
                 if (!gl.getProgramParameter(p, gl.LINK_STATUS)) throw new Error(gl.getProgramInfoLog(p) || 'link failed');
                 return p;
+            }
+            function makeTex() {
+                var t = gl.createTexture(); gl.bindTexture(gl.TEXTURE_2D, t);
+                gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+                gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+                gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+                gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+                return t;
             }
 
             var quadBuffer = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, quadBuffer);
             gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1,-1,1,-1,-1,1,1,1]), gl.STATIC_DRAW);
 
-            // Build a map from output IDs to pass indices so inputs that reference
-            // outputs by id (common in Shadertoy JSON) can be resolved to pass indices.
-            var outputsMap = {};
-            if (raw.renderpass && Array.isArray(raw.renderpass)) {
-                raw.renderpass.forEach(function(rp, i){ if (rp && rp.outputs && Array.isArray(rp.outputs)) { rp.outputs.forEach(function(o){ if (o && o.id) outputsMap[o.id] = i; }); } });
-            }
+            // Collect 'common' pass code and prepend it to all renderable passes
+            var commonCode = '';
+            raw.renderpass.forEach(function(r){ if (r && r.type === 'common' && r.code) commonCode += r.code + '\n'; });
 
-            // Build pass objects
-            var passes = raw.renderpass.map(function(r, idx){
-                var code = r && r.code ? r.code : (r.shader || '');
+            // Map output IDs → original renderpass array index for input resolution
+            var outputsMap = {};
+            raw.renderpass.forEach(function(rp, i){
+                if (rp && rp.outputs && Array.isArray(rp.outputs)) {
+                    rp.outputs.forEach(function(o){ if (o && o.id) outputsMap[o.id] = i; });
+                }
+            });
+
+            // Build pass objects (skip 'common' type — code already collected above)
+            var passes = [];
+            raw.renderpass.forEach(function(r, originalIdx){
+                if (!r || r.type === 'common') return;
+
+                var isImage = (r.type === 'image' || (typeof r.name === 'string' && r.name.toLowerCase() === 'image'));
+                var code = commonCode + (r.code || r.shader || '');
                 var hasMainImage = /mainImage\s*\(/.test(code);
-                var frag = '\nprecision highp float;\nuniform vec2 iResolution;\nuniform float iTime;\nuniform vec4 iMouse;\n' + code + '\n' + (hasMainImage ? '\nvoid main(){ vec2 fragCoord = gl_FragCoord.xy; vec4 col = vec4(0.0); mainImage(col, fragCoord); gl_FragColor = col; }\n' : '');
-                var vert = '\nattribute vec2 aPos;\nvoid main(){ gl_Position = vec4(aPos,0.,1.); }\n';
+                var fsSrc = glslHeader + code;
+                if (hasMainImage) fsSrc += '\nvoid main(){ vec2 fragCoord = gl_FragCoord.xy; vec4 col = vec4(0.0); mainImage(col, fragCoord); gl_FragColor = col; }\n';
+
                 var program = null;
-                try { program = makeProgram(vert, frag); } catch (e) { console.warn('Pass compile failed', e); }
-                // allocate two textures for ping-pong to be safe
-                var texA = gl.createTexture(); gl.bindTexture(gl.TEXTURE_2D, texA); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
-                var texB = gl.createTexture(); gl.bindTexture(gl.TEXTURE_2D, texB); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+                try { program = makeProgram(fsSrc); } catch(e) { console.warn('Pass ' + (r.name || originalIdx) + ' compile error:', e.message || e); }
+
+                // Two ping-pong textures for each buffer pass; image pass renders to screen
+                var texA = makeTex(), texB = makeTex();
                 var fbo = gl.createFramebuffer();
-                // handle inputs (iChannelN): allow external image URLs or pass references by index
+
+                // Resolve inputs: buffer outputs by id, image URLs, numeric indices
                 var inputs = [];
-                if (r && Array.isArray(r.inputs)) {
-                    r.inputs.forEach(function(inp, ii){
-                        var entry = { type: 'empty', tex: null, src: inp };
-                        // numeric -> pass index
-                        if (typeof inp === 'number') { entry.type = 'pass'; entry.passIndex = inp; }
-                        else if (inp && typeof inp === 'object') {
-                            // if input references an output id, resolve via outputsMap
-                            if (inp.id && outputsMap.hasOwnProperty(inp.id)) { entry.type = 'pass'; entry.passIndex = outputsMap[inp.id]; }
-                            else if (typeof inp.src === 'number') { entry.type = 'pass'; entry.passIndex = inp.src; }
-                            // handle filepaths from exported JSON (filepath or src)
-                            else if (inp.filepath && typeof inp.filepath === 'string') { entry.type = 'image'; entry.url = inp.filepath; }
-                            else if (typeof inp.src === 'string' && (inp.src.indexOf('http') === 0 || inp.src.indexOf('/') >= 0)) { entry.type = 'image'; entry.url = inp.src; }
-                        } else if (typeof inp === 'string' && (inp.indexOf('http') === 0 || inp.indexOf('/') >= 0)) { entry.type = 'image'; entry.url = inp; }
+                if (r.inputs && Array.isArray(r.inputs)) {
+                    r.inputs.forEach(function(inp){
+                        var entry = { type: 'empty', tex: null };
+                        if (typeof inp === 'number') {
+                            entry.type = 'pass'; entry.passIndex = inp;
+                        } else if (inp && typeof inp === 'object') {
+                            if (inp.id && outputsMap.hasOwnProperty(inp.id)) {
+                                entry.type = 'pass'; entry.passIndex = outputsMap[inp.id];
+                            } else if (typeof inp.src === 'number') {
+                                entry.type = 'pass'; entry.passIndex = inp.src;
+                            } else if (inp.filepath && typeof inp.filepath === 'string') {
+                                entry.type = 'image'; entry.url = inp.filepath;
+                            } else if (typeof inp.src === 'string' && inp.src.length > 0) {
+                                entry.type = 'image'; entry.url = inp.src;
+                            }
+                        } else if (typeof inp === 'string' && inp.length > 0) {
+                            entry.type = 'image'; entry.url = inp;
+                        }
                         inputs.push(entry);
                     });
                 }
-                // create placeholder textures for image inputs; they'll be updated on load
-                inputs.forEach(function(entry){ if (entry.type === 'image') { var tex = gl.createTexture(); gl.bindTexture(gl.TEXTURE_2D, tex); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE); // 1x1 pixel placeholder
-                    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, 1,1,0, gl.RGBA, gl.UNSIGNED_BYTE, new Uint8Array([128,128,128,255])); entry.tex = tex; // load image async
+
+                // Load image/texture inputs asynchronously; use a gray placeholder until loaded
+                inputs.forEach(function(entry){
+                    if (entry.type !== 'image') return;
+                    var tex = makeTex();
+                    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, 1, 1, 0, gl.RGBA, gl.UNSIGNED_BYTE, new Uint8Array([128,128,128,255]));
+                    entry.tex = tex;
                     var img = new Image(); img.crossOrigin = 'anonymous';
-                    function setTexFromImg() { gl.bindTexture(gl.TEXTURE_2D, tex); try { gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, img); } catch(e) { try { gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, img); } catch(e2) { console.warn('texImage2D failed', e2); } } }
-                    img.onload = function(){ setTexFromImg(); };
-                    img.onerror = function(){ /* we'll try alternate candidate urls below */ };
-                    // Try several candidate URLs so exported Shadertoy filepaths like
-                    // "/media/previz/buffer00.png" resolve when hosted inside this repo.
+                    function upload(){ try { gl.bindTexture(gl.TEXTURE_2D, tex); gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, img); } catch(e){} }
                     if (entry.url) {
+                        // Try Shadertoy CDN first for /media/... paths, then local fallbacks
                         var candidates = [];
-                        // raw filepath as provided
+                        if (entry.url.charAt(0) === '/') candidates.push('https://www.shadertoy.com' + entry.url);
                         candidates.push(entry.url);
-                        // if it starts with '/', try under the `shadertoys` folder
                         if (entry.url.charAt(0) === '/') candidates.push('shadertoys' + entry.url);
-                        // try a relative path from the shadertoys folder
-                        candidates.push('shadertoys' + '/media/previz/' + (entry.url.split('/').pop()));
-                        // finally try just the basename in shadertoys folder
-                        candidates.push('shadertoys/' + (entry.url.split('/').pop()));
-                        (function tryNext(i){ if (i >= candidates.length) { console.warn('Image load failed for', entry.url); return; } img.src = candidates[i]; img.onerror = function(){ tryNext(i+1); }; img.onload = function(){ setTexFromImg(); }; })(0);
+                        candidates.push('shadertoys/media/previz/' + entry.url.split('/').pop());
+                        candidates.push('shadertoys/' + entry.url.split('/').pop());
+                        (function tryNext(i){
+                            if (i >= candidates.length) { console.warn('Texture load failed:', entry.url); return; }
+                            img.onload = upload;
+                            img.onerror = function(){ tryNext(i + 1); };
+                            img.src = candidates[i];
+                        })(0);
                     }
-                } });
-                return { program: program, texA: texA, texB: texB, fbo: fbo, width: canvas.width, height: canvas.height, ping: 0, inputs: inputs };
+                });
+
+                passes.push({ program: program, texA: texA, texB: texB, fbo: fbo,
+                    width: canvas.width, height: canvas.height, ping: 0,
+                    inputs: inputs, isImage: isImage, originalIdx: originalIdx });
             });
 
-            // initialize textures with empty data
+            if (passes.length === 0) return null;
+
+            // Lookup pass by its original renderpass index (used for input resolution)
+            var passByOrigIdx = {};
+            passes.forEach(function(p){ passByOrigIdx[p.originalIdx] = p; });
+
+            // Execution order: all buffer passes first (in original relative order),
+            // then the image pass(es) last (rendered directly to the default framebuffer).
+            var bufferPasses = passes.filter(function(p){ return !p.isImage; });
+            var imagePasses  = passes.filter(function(p){ return  p.isImage; });
+            // Fallback: if no pass is tagged 'image', treat the last pass as the image pass
+            if (imagePasses.length === 0 && bufferPasses.length > 0) {
+                imagePasses  = bufferPasses.slice(-1);
+                bufferPasses = bufferPasses.slice(0, -1);
+            }
+
+            // --- FBO texture allocation ---
             function allocTex(tex, w, h) {
                 gl.bindTexture(gl.TEXTURE_2D, tex);
                 if (isWebGL2) gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA32F, w, h, 0, gl.RGBA, gl.FLOAT, null);
-                else gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, w, h, 0, gl.RGBA, gl.FLOAT, null);
+                else          gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA,    w, h, 0, gl.RGBA, gl.FLOAT, null);
             }
 
+            var lastW = 0, lastH = 0;
             function resizeAll() {
                 var dpr = Math.max(1, window.devicePixelRatio || 1);
-                var w = Math.max(1, Math.floor(canvas.clientWidth * dpr)); var h = Math.max(1, Math.floor(canvas.clientHeight * dpr));
+                var w = Math.max(1, Math.floor(canvas.clientWidth  * dpr));
+                var h = Math.max(1, Math.floor(canvas.clientHeight * dpr));
                 if (canvas.width !== w || canvas.height !== h) { canvas.width = w; canvas.height = h; }
-                passes.forEach(function(p){ p.width = canvas.width; p.height = canvas.height; allocTex(p.texA, p.width, p.height); allocTex(p.texB, p.width, p.height); });
-                gl.viewport(0,0,canvas.width, canvas.height);
+                if (canvas.width !== lastW || canvas.height !== lastH) {
+                    lastW = canvas.width; lastH = canvas.height;
+                    passes.forEach(function(p){
+                        p.width = canvas.width; p.height = canvas.height;
+                        allocTex(p.texA, p.width, p.height);
+                        allocTex(p.texB, p.width, p.height);
+                    });
+                }
+                gl.viewport(0, 0, canvas.width, canvas.height);
             }
 
-            // uniform/state locations cache
-            passes.forEach(function(p){ if (p.program) {
-                p.uRes = gl.getUniformLocation(p.program, 'iResolution');
-                p.uTime = gl.getUniformLocation(p.program, 'iTime');
-                p.uMouse = gl.getUniformLocation(p.program, 'iMouse');
-                p.uFrame = gl.getUniformLocation(p.program, 'iFrame');
-                p.uTimeDelta = gl.getUniformLocation(p.program, 'iTimeDelta');
-            } });
+            // Cache uniform locations for each pass
+            passes.forEach(function(p){
+                if (!p.program) return;
+                p.uRes      = gl.getUniformLocation(p.program, 'iResolution');
+                p.uTime     = gl.getUniformLocation(p.program, 'iTime');
+                p.uTimeDelta= gl.getUniformLocation(p.program, 'iTimeDelta');
+                p.uFrame    = gl.getUniformLocation(p.program, 'iFrame');
+                p.uMouse    = gl.getUniformLocation(p.program, 'iMouse');
+                p.uChan     = [0,1,2,3].map(function(ci){ return gl.getUniformLocation(p.program, 'iChannel' + ci); });
+                p.uChanRes  = [0,1,2,3].map(function(ci){ return gl.getUniformLocation(p.program, 'iChannelResolution[' + ci + ']'); });
+            });
 
+            // --- Mouse tracking ---
             var mouse = { x: 0, y: 0, clickX: 0, clickY: 0, down: false };
             function toShaderMouse(ev) {
                 var rect = canvas.getBoundingClientRect();
                 if (!rect || rect.width <= 0 || rect.height <= 0) return { x: 0, y: 0 };
-                var localX = ev.clientX - rect.left;
-                var localY = ev.clientY - rect.top;
-                var x = Math.max(0, Math.min(rect.width, localX)) * (canvas.width / rect.width);
-                var yTop = Math.max(0, Math.min(rect.height, localY)) * (canvas.height / rect.height);
-                var y = canvas.height - yTop;
+                var x = Math.max(0, Math.min(rect.width,  ev.clientX - rect.left))  * (canvas.width  / rect.width);
+                var y = canvas.height - Math.max(0, Math.min(rect.height, ev.clientY - rect.top)) * (canvas.height / rect.height);
                 return { x: x, y: y };
             }
-
-            function onPointerDown(ev) {
-                var p = toShaderMouse(ev);
-                mouse.down = true;
-                mouse.x = p.x; mouse.y = p.y;
-                mouse.clickX = p.x; mouse.clickY = p.y;
-            }
-
-            function onPointerMove(ev) {
-                var p = toShaderMouse(ev);
-                mouse.x = p.x; mouse.y = p.y;
-            }
-
-            function onPointerUp(ev) {
-                var p = toShaderMouse(ev);
-                mouse.x = p.x; mouse.y = p.y;
-                mouse.down = false;
-            }
-
+            function onPointerDown(ev){ var p = toShaderMouse(ev); mouse.down = true;  mouse.x = p.x; mouse.y = p.y; mouse.clickX = p.x; mouse.clickY = p.y; }
+            function onPointerMove(ev){ var p = toShaderMouse(ev); mouse.x = p.x; mouse.y = p.y; }
+            function onPointerUp(ev)  { var p = toShaderMouse(ev); mouse.x = p.x; mouse.y = p.y; mouse.down = false; }
             canvas.addEventListener('pointerdown', onPointerDown);
             canvas.addEventListener('pointermove', onPointerMove);
-            window.addEventListener('pointerup', onPointerUp);
+            window.addEventListener('pointerup',   onPointerUp);
 
+            // --- Input binding helper ---
+            // For a given pass, bind iChannel0..3 to the correct textures.
+            // "readTex" for a source pass is (ping===0 ? texB : texA) — this always
+            // points to the most-recently-written texture regardless of whether the
+            // source pass has already run this frame (after flip) or not yet (previous frame).
+            function bindInputs(p) {
+                for (var ci = 0; ci < 4; ci++) {
+                    gl.activeTexture(gl.TEXTURE0 + ci);
+                    var bound = false;
+                    if (p.inputs && p.inputs[ci]) {
+                        var inp = p.inputs[ci];
+                        if (inp.type === 'image' && inp.tex) {
+                            gl.bindTexture(gl.TEXTURE_2D, inp.tex); bound = true;
+                        } else if (inp.type === 'pass' && typeof inp.passIndex === 'number') {
+                            var src = passByOrigIdx[inp.passIndex] || passes[inp.passIndex] || null;
+                            if (src) {
+                                // readTex formula: (ping===0 → texB, ping===1 → texA).
+                                // ping=0 means the pass hasn't run yet this frame (previous output is in texB).
+                                // ping=1 means the pass just ran (wrote texA, flipped) so freshest output is texA.
+                                gl.bindTexture(gl.TEXTURE_2D, (src.ping === 0) ? src.texB : src.texA);
+                                bound = true;
+                            }
+                        }
+                    }
+                    if (!bound) gl.bindTexture(gl.TEXTURE_2D, null);
+                    if (p.uChan && p.uChan[ci]) gl.uniform1i(p.uChan[ci], ci);
+                    if (bound && p.uChanRes && p.uChanRes[ci]) {
+                        var srcW = p.width, srcH = p.height;
+                        if (p.inputs && p.inputs[ci] && p.inputs[ci].type === 'pass') {
+                            var srcP = passByOrigIdx[p.inputs[ci].passIndex] || passes[p.inputs[ci].passIndex] || null;
+                            if (srcP) { srcW = srcP.width; srcH = srcP.height; }
+                        }
+                        gl.uniform3f(p.uChanRes[ci], srcW, srcH, 1.0);
+                    }
+                }
+            }
+
+            // --- Render loop ---
             var start = performance.now(); var raf = null; var stopped = false; var frameN = 0; var lastT = 0;
             function step() {
                 if (stopped) return;
                 resizeAll();
                 var now = performance.now();
-                var t = (now - start) / 1000;
+                var t  = (now - start) / 1000;
                 var dt = t - lastT; if (dt <= 0) dt = 0.000001; lastT = t;
-                // run passes in order; bind previous pass outputs as iChannel0..3 (or explicit inputs)
-                passes.forEach(function(p, idx){
+                var mx = mouse.x, my = mouse.y;
+                var mcx = mouse.down ?  mouse.clickX : -Math.abs(mouse.clickX);
+                var mcy = mouse.down ?  mouse.clickY : -Math.abs(mouse.clickY);
+
+                // Phase 1: render all buffer passes into their FBOs
+                bufferPasses.forEach(function(p){
                     if (!p.program) return;
-                    // determine write texture (ping-pong)
                     var writeTex = (p.ping === 0) ? p.texA : p.texB;
-                    var readTex = (p.ping === 0) ? p.texB : p.texA;
                     gl.bindFramebuffer(gl.FRAMEBUFFER, p.fbo);
                     gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, writeTex, 0);
-                    gl.viewport(0,0,p.width,p.height);
+                    gl.viewport(0, 0, p.width, p.height);
                     gl.useProgram(p.program);
-                    // bind quad
-                    gl.bindBuffer(gl.ARRAY_BUFFER, quadBuffer); gl.enableVertexAttribArray(0); gl.vertexAttribPointer(0,2,gl.FLOAT,false,0,0);
-                    // bind inputs to texture units iChannel0..3
-                    for (var ci=0; ci<4; ++ci) {
-                        var unit = gl.TEXTURE0 + ci;
-                        gl.activeTexture(unit);
-                        var loc = gl.getUniformLocation(p.program, 'iChannel' + ci);
-                        var bound = false;
-                        // explicit inputs take precedence
-                        if (p.inputs && p.inputs[ci]) {
-                            var inp = p.inputs[ci];
-                            if (inp.type === 'image' && inp.tex) { gl.bindTexture(gl.TEXTURE_2D, inp.tex); bound = true; }
-                            else if (inp.type === 'pass' && typeof inp.passIndex === 'number') {
-                                var srcPass = passes[inp.passIndex];
-                                if (srcPass) { var srcTex = (srcPass.ping === 0) ? srcPass.texA : srcPass.texB; gl.bindTexture(gl.TEXTURE_2D, srcTex); bound = true; }
-                            }
-                        }
-                        // fallback heuristic: use previous passes
-                        if (!bound) {
-                            var srcPass = passes[idx - 1 - ci];
-                            if (srcPass) { var srcTex = (srcPass.ping === 0) ? srcPass.texA : srcPass.texB; gl.bindTexture(gl.TEXTURE_2D, srcTex); bound = true; }
-                        }
-                        if (!bound) gl.bindTexture(gl.TEXTURE_2D, null);
-                        if (loc) gl.uniform1i(loc, ci);
-
-                        // try to set iChannelResolution[ci]
-                        if (bound) {
-                            var resLoc = gl.getUniformLocation(p.program, 'iChannelResolution[' + ci + ']');
-                            if (resLoc) {
-                                var srcW = p.width, srcH = p.height;
-                                var srcPassRef = (p.inputs && p.inputs[ci] && p.inputs[ci].type === 'pass') ? passes[p.inputs[ci].passIndex] : null;
-                                if (srcPassRef) { srcW = srcPassRef.width || srcW; srcH = srcPassRef.height || srcH; }
-                                gl.uniform3f(resLoc, srcW, srcH, 1.0);
-                            }
-                        }
-                    }
-                    if (p.uRes) gl.uniform2f(p.uRes, p.width, p.height);
-                    if (p.uTime) gl.uniform1f(p.uTime, t);
-                    if (p.uMouse) gl.uniform4f(p.uMouse, mouse.x, mouse.y, mouse.down ? mouse.clickX : -Math.abs(mouse.clickX), mouse.down ? mouse.clickY : -Math.abs(mouse.clickY));
-                    if (p.uFrame) gl.uniform1i(p.uFrame, frameN);
+                    gl.bindBuffer(gl.ARRAY_BUFFER, quadBuffer);
+                    gl.enableVertexAttribArray(0); gl.vertexAttribPointer(0, 2, gl.FLOAT, false, 0, 0);
+                    bindInputs(p);
+                    if (p.uRes)       gl.uniform2f(p.uRes,       p.width, p.height);
+                    if (p.uTime)      gl.uniform1f(p.uTime,      t);
                     if (p.uTimeDelta) gl.uniform1f(p.uTimeDelta, dt);
+                    if (p.uFrame)     gl.uniform1i(p.uFrame,     frameN);
+                    if (p.uMouse)     gl.uniform4f(p.uMouse,     mx, my, mcx, mcy);
                     gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
-                    // swap ping
-                    p.ping = 1 - p.ping;
+                    p.ping = 1 - p.ping; // flip after write so readTex points to what we just wrote
                 });
-                // present last pass to screen
+
+                // Phase 2: render image pass(es) directly to the default framebuffer (screen)
                 gl.bindFramebuffer(gl.FRAMEBUFFER, null);
-                gl.viewport(0,0,canvas.width, canvas.height);
-                var last = passes[passes.length-1];
-                if (last && last.program) {
-                    // render a simple textured quad using last.read texture
-                    var texToShow = (last.ping === 0) ? last.texB : last.texA;
-                    // use a simple blit shader if available; otherwise draw using the last pass program by binding texture as iChannel0
-                    gl.useProgram(last.program);
-                    var locC = gl.getUniformLocation(last.program, 'iChannel0'); if (locC) { gl.activeTexture(gl.TEXTURE0); gl.bindTexture(gl.TEXTURE_2D, texToShow); gl.uniform1i(locC, 0); }
-                    if (last.uRes) gl.uniform2f(last.uRes, canvas.width, canvas.height);
-                    if (last.uTime) gl.uniform1f(last.uTime, t);
-                    if (last.uMouse) gl.uniform4f(last.uMouse, mouse.x, mouse.y, mouse.down ? mouse.clickX : -Math.abs(mouse.clickX), mouse.down ? mouse.clickY : -Math.abs(mouse.clickY));
-                    if (last.uFrame) gl.uniform1i(last.uFrame, frameN);
-                    var pos = quadBuffer; gl.bindBuffer(gl.ARRAY_BUFFER, pos); gl.enableVertexAttribArray(0); gl.vertexAttribPointer(0,2,gl.FLOAT,false,0,0);
+                gl.viewport(0, 0, canvas.width, canvas.height);
+                imagePasses.forEach(function(p){
+                    if (!p.program) return;
+                    gl.useProgram(p.program);
+                    gl.bindBuffer(gl.ARRAY_BUFFER, quadBuffer);
+                    gl.enableVertexAttribArray(0); gl.vertexAttribPointer(0, 2, gl.FLOAT, false, 0, 0);
+                    bindInputs(p);
+                    if (p.uRes)       gl.uniform2f(p.uRes,       canvas.width, canvas.height);
+                    if (p.uTime)      gl.uniform1f(p.uTime,      t);
+                    if (p.uTimeDelta) gl.uniform1f(p.uTimeDelta, dt);
+                    if (p.uFrame)     gl.uniform1i(p.uFrame,     frameN);
+                    if (p.uMouse)     gl.uniform4f(p.uMouse,     mx, my, mcx, mcy);
                     gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
-                }
-                frameN++; raf = requestAnimationFrame(step);
+                    // image pass renders to screen — no ping-pong needed
+                });
+
+                frameN++;
+                raf = requestAnimationFrame(step);
             }
 
             step();
-            return { stop: function(){ stopped = true; if (raf) cancelAnimationFrame(raf); canvas.removeEventListener('pointerdown', onPointerDown); canvas.removeEventListener('pointermove', onPointerMove); window.removeEventListener('pointerup', onPointerUp); }, resume: function(){ if (stopped) { stopped = false; start = performance.now(); step(); } }, gl: gl };
+            return {
+                stop:   function(){ stopped = true; if (raf) cancelAnimationFrame(raf); canvas.removeEventListener('pointerdown', onPointerDown); canvas.removeEventListener('pointermove', onPointerMove); window.removeEventListener('pointerup', onPointerUp); },
+                resume: function(){ if (stopped){ stopped = false; start = performance.now(); step(); } },
+                gl: gl
+            };
         }
 
         function startPreview()
