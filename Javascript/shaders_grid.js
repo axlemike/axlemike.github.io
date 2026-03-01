@@ -390,7 +390,14 @@
             if (!gl) { canvas.replaceWith(document.createTextNode('WebGL unavailable')); return null; }
             var vert = '\nattribute vec2 aPos;\nvoid main(){ gl_Position = vec4(aPos,0.,1.); }\n';
             var hasMainImage = /mainImage\s*\(/.test(src);
-            var frag = '\nprecision mediump float;\nuniform vec2 iResolution;\nuniform float iTime;\nuniform vec4 iMouse;\n' + src + '\n' + (hasMainImage ? '\nvoid main(){ vec2 fragCoord = gl_FragCoord.xy; vec4 col = vec4(0.0); mainImage(col, fragCoord); gl_FragColor = col; }\n' : '');
+            var hasMainFn = /void\s+main\s*\(/.test(src);
+            var frag = '\nprecision mediump float;\nuniform vec2 iResolution;\nuniform float iTime;\nuniform vec4 iMouse;\n' + src + '\n';
+            if (hasMainImage) {
+                frag += '\nvoid main(){ vec2 fragCoord = gl_FragCoord.xy; vec4 col = vec4(0.0); mainImage(col, fragCoord); gl_FragColor = col; }\n';
+            } else if (!hasMainFn) {
+                // Ensure shader has an entry point to avoid "Missing main()" errors
+                frag += '\nvoid main(){ gl_FragColor = vec4(0.0); }\n';
+            }
 
             function compile(type, srcText){ var s = gl.createShader(type); gl.shaderSource(s, srcText); gl.compileShader(s); if (!gl.getShaderParameter(s, gl.COMPILE_STATUS)) throw new Error(gl.getShaderInfoLog(s) || 'compile error'); return s; }
 
@@ -528,8 +535,15 @@
                 var isImage = (r.type === 'image' || (typeof r.name === 'string' && r.name.toLowerCase() === 'image'));
                 var code = commonCode + (r.code || r.shader || '');
                 var hasMainImage = /mainImage\s*\(/.test(code);
+                var hasMainFn = /void\s+main\s*\(/.test(code);
                 var fsSrc = glslHeader + code;
-                if (hasMainImage) fsSrc += '\nvoid main(){ vec2 fragCoord = gl_FragCoord.xy; vec4 col = vec4(0.0); mainImage(col, fragCoord); gl_FragColor = col; }\n';
+                if (hasMainImage) {
+                    fsSrc += '\nvoid main(){ vec2 fragCoord = gl_FragCoord.xy; vec4 col = vec4(0.0); mainImage(col, fragCoord); gl_FragColor = col; }\n';
+                } else if (!hasMainFn) {
+                    // If neither a mainImage nor a main() is present, append a trivial main
+                    // to avoid GLSL compile errors like "Missing main()" for some exported passes.
+                    fsSrc += '\nvoid main(){ gl_FragColor = vec4(0.0); }\n';
+                }
 
                 var program = null;
                 try { program = makeProgram(fsSrc); } catch(e) { console.warn('Pass ' + (r.name || originalIdx) + ' compile error:', e.message || e); }
