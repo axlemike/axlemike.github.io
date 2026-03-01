@@ -106,16 +106,10 @@
   const u_time = gl.getUniformLocation(program, 'u_time');
   const u_enabled = gl.getUniformLocation(program, 'u_enabled');
 
-  // start time and whether the shader is enabled (default: disabled)
   let start = performance.now();
   let enabled = localStorage.getItem('bgShaderEnabled');
-  if (enabled === null) enabled = '0';
+  if (enabled === null) enabled = '1';
   enabled = enabled === '1';
-
-  // per-page seed (bumped by navigation) to vary animation between pages
-  let seed = parseInt(localStorage.getItem('bgShaderSeed') || '0', 10) || 0;
-  // offset start time based on seed so different pages show different phases
-  start -= seed * 500;
 
   function resize(){
     const dpr = Math.min(2, window.devicePixelRatio || 1);
@@ -132,11 +126,7 @@
   resize();
 
   function render(){
-    // vary speed and direction slightly based on seed
-    const baseT = (performance.now() - start) * 0.001;
-    const speed = 0.5 + ((seed % 5) * 0.2);
-    const dir = (seed % 2 === 0) ? 1.0 : -1.0;
-    const t = baseT * speed * dir;
+    const t = (performance.now() - start) * 0.001;
     gl.useProgram(program);
     gl.bindVertexArray(vao);
     gl.uniform2f(u_res, canvas.width, canvas.height);
