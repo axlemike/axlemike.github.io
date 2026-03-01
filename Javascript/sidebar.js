@@ -177,7 +177,14 @@ function loadSidebarAndInit()
                 var tmp = document.createElement('div');
                 tmp.innerHTML = html.trim();
                 var newSide = tmp.firstElementChild;
-                if (newSide) document.body.insertBefore(newSide, document.body.firstChild);
+                if (newSide) {
+                    document.body.insertBefore(newSide, document.body.firstChild);
+                    // Ensure the sidebar retains fixed left positioning even if external CSS
+                    // was accidentally removed or overridden on the live site.
+                    try {
+                        enforceSidebarStyles(newSide);
+                    } catch(e) { console.warn('enforceSidebarStyles failed', e); }
+                }
             }
             catch (e)
             {
@@ -185,7 +192,9 @@ function loadSidebarAndInit()
                 // fallback to HTML string
                 document.querySelectorAll('.sidenav').forEach(function(el){ el.remove(); });
                 var tmp2 = document.createElement('div'); tmp2.innerHTML = fallbackHtml;
-                document.body.insertBefore(tmp2.firstElementChild, document.body.firstChild);
+                var injected = tmp2.firstElementChild;
+                document.body.insertBefore(injected, document.body.firstChild);
+                try { enforceSidebarStyles(injected); } catch(e) { console.warn('enforceSidebarStyles failed', e); }
             }
         }).catch(function()
         {
@@ -193,13 +202,41 @@ function loadSidebarAndInit()
             try {
                 document.querySelectorAll('.sidenav').forEach(function(el){ el.remove(); });
                 var tmp3 = document.createElement('div'); tmp3.innerHTML = fallbackHtml;
-                document.body.insertBefore(tmp3.firstElementChild, document.body.firstChild);
+                var injected2 = tmp3.firstElementChild;
+                document.body.insertBefore(injected2, document.body.firstChild);
+                try { enforceSidebarStyles(injected2); } catch(e) { console.warn('enforceSidebarStyles failed', e); }
             } catch (e) {
                 console.error('sidebar fallback injection failed', e);
             }
         }).finally(function(){
             init();
         });
+    }
+
+    // Ensure sidebar element and body margin are correctly set even when CSS is missing
+    function enforceSidebarStyles(sideEl) {
+        if (!sideEl) return;
+        // read CSS variables for widths, fall back to sensible defaults
+        var root = window.getComputedStyle(document.documentElement);
+        var w = root.getPropertyValue('--sidebar-width') || '220px';
+        var g = root.getPropertyValue('--sidebar-gutter') || '18px';
+        w = w.trim(); g = g.trim();
+        // apply inline styles to keep sidebar fixed on the left
+        sideEl.style.position = 'fixed';
+        sideEl.style.left = '0';
+        sideEl.style.top = '0';
+        sideEl.style.width = w;
+        sideEl.style.zIndex = '1000';
+        sideEl.style.backgroundColor = sideEl.style.backgroundColor || 'var(--sidebar-bg)';
+        // compute numeric margin-left for body if possible
+        function parsePx(v){ var m = (v||'').match(/(-?\d+(?:\.\d+)?)px/); return m ? parseFloat(m[1]) : NaN; }
+        var wpx = parsePx(w); var gpx = parsePx(g);
+        if (!isNaN(wpx) && !isNaN(gpx)) {
+            document.body.style.marginLeft = (wpx + gpx) + 'px';
+        } else {
+            // fallback to CSS calc using variables
+            document.body.style.marginLeft = 'calc(' + w + ' + ' + g + ')';
+        }
     }
 
     if (document.readyState === 'loading')
