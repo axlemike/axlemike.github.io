@@ -85,7 +85,13 @@
                     var close = document.createElement('button'); close.className = 'shader-overlay-close'; close.textContent = '✕';
                     var titleEl = document.createElement('div'); titleEl.className = 'shader-overlay-title'; titleEl.textContent = item.title || (item.raw && item.raw.info && item.raw.info.name) || 'Shader';
                     var mount = document.createElement('div'); mount.className = 'threejs-mount';
-                    overlay.appendChild(close); overlay.appendChild(titleEl); overlay.appendChild(mount); document.body.appendChild(overlay);
+                    overlay.appendChild(close); overlay.appendChild(titleEl); overlay.appendChild(mount);
+                    // Remove any existing fallback overlays to avoid duplicate titles/overlays
+                    try {
+                        var existing = document.querySelectorAll && document.querySelectorAll('.shader-overlay');
+                        if (existing && existing.length) existing.forEach(function(o){ try { if (o._threeCleanup) { o._threeCleanup(); } else if (o.parentNode) { o.parentNode.removeChild(o); } } catch(e){} });
+                    } catch(e) {}
+                    document.body.appendChild(overlay);
 
                     var width = Math.min(window.innerWidth * 0.9, 900);
                     var height = Math.round(width * 506/900);
