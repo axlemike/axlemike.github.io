@@ -8,6 +8,10 @@
     <title>Projects — Shadertoys</title>
 </head>
 <body>
+    <!-- Background shader canvas and overlay -->
+    <canvas id="bg-canvas" aria-hidden="true"></canvas>
+    <div id="bg-overlay" aria-hidden="true"></div>
+    <button id="bg-toggle" class="bg-toggle" aria-pressed="true">Disable background</button>
     <header>
         <h1>Shadertoys</h1>
         <nav>
@@ -37,6 +41,7 @@
     <script src="Javascript/shadertoys/shaders_public_fallback.js"></script>
     <script src="Javascript/shadertoys/shaders_index.js"></script>
     <script src="Javascript/shaders_grid.js"></script>
+    <script src="Javascript/background_shader.js"></script>
 </body>
 </html>
 
