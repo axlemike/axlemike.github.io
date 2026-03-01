@@ -30,7 +30,6 @@
       { "info": { "id": "4lKSzK", "name": "Worley/Cell Noise" }, "hasMouse": true }
     ]
   };
-};
 
   // Async attempt to overwrite with hosted copy when available (relative path)
   (async function(){

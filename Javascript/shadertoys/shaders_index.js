@@ -3,21 +3,21 @@
 // if `window.SHADERS_PUBLIC` is missing or incomplete so offline usage shows the
 // full shader list without requiring a file upload.
 window.SHADERS_FALLBACK = [
-    { title: 'A Simple Ray Tracer', id: 'Xls3DM' },
-    { title: 'Simple Text Example', id: 'XlfSzj' },
-    { title: 'Parallax Scrolling Star Field', id: 'XtjSDh' },
-    { title: 'Noise Functions: 1', id: 'XtSXzK' },
-    { title: 'Mass Effect - Mass Relay', id: 'lstGzf' },
-    { title: 'Shadertris', id: 'lst3W2' },
-    { title: 'PBR Editor', id: '4sKGDG' },
-    { title: 'Bomberman', id: '4ltGD8' },
-    { title: 'Colored Mandelbrot Set', id: 'MtV3Ry' },
-    { title: 'Silly Spiral', id: 'XtK3Rt' },
-    { title: '2D Rope Example', id: 'XlcSRf' },
-    { title: 'Open Sign', id: '4tVSzz' },
-    { title: 'Simple Shadowmap', id: 'MlyXR1' },
-    { title: 'Parallax Mapping Comparision', id: 'ltGXRV' },
-    { title: 'Worley/Cell Noise', id: '4lKSzK' }
+    { title: 'A Simple Ray Tracer', id: 'Xls3DM', hasMouse: true },
+    { title: 'Simple Text Example', id: 'XlfSzj', hasMouse: true },
+    { title: 'Parallax Scrolling Star Field', id: 'XtjSDh', hasMouse: true },
+    { title: 'Noise Functions: 1', id: 'XtSXzK', hasMouse: true },
+    { title: 'Mass Effect - Mass Relay', id: 'lstGzf', hasMouse: true },
+    { title: 'Shadertris', id: 'lst3W2', hasMouse: true, hasKeyboard: true },
+    { title: 'PBR Editor', id: '4sKGDG', hasMouse: true, hasKeyboard: true },
+    { title: 'Bomberman', id: '4ltGD8', hasMouse: true, hasKeyboard: true },
+    { title: 'Colored Mandelbrot Set', id: 'MtV3Ry', hasMouse: true },
+    { title: 'Silly Spiral', id: 'XtK3Rt', hasMouse: true },
+    { title: '2D Rope Example', id: 'XlcSRf', hasMouse: true },
+    { title: 'Open Sign', id: '4tVSzz', hasMouse: false },
+    { title: 'Simple Shadowmap', id: 'MlyXR1', hasMouse: true },
+    { title: 'Parallax Mapping Comparision', id: 'ltGXRV', hasMouse: true },
+    { title: 'Worley/Cell Noise', id: '4lKSzK', hasMouse: true }
 ];
 
 // If a full `SHADERS_PUBLIC` payload already exists, keep it.
@@ -36,7 +36,7 @@ if (window && window.SHADERS_PUBLIC && window.SHADERS_PUBLIC.shaders && window.S
             console.warn('shaders_index: failed to load full fallback; leaving short index in place');
             // As a last resort, expose a minimal SHADERS_PUBLIC so consumers see something
             try {
-                if (!window.SHADERS_PUBLIC) window.SHADERS_PUBLIC = { shaders: window.SHADERS_FALLBACK.map(function(f){ return { info: { name: f.title, id: f.id }, url: 'https://www.shadertoy.com/view/' + f.id }; }) };
+                if (!window.SHADERS_PUBLIC) window.SHADERS_PUBLIC = { shaders: window.SHADERS_FALLBACK.map(function(f){ return { info: { name: f.title, id: f.id }, url: 'https://www.shadertoy.com/view/' + f.id, hasMouse: !!f.hasMouse, hasKeyboard: !!f.hasKeyboard }; }) };
             } catch (e) {}
         };
         (document.head || document.documentElement).appendChild(script);
