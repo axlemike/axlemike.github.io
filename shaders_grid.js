@@ -541,12 +541,14 @@
             overlay.appendChild(close); overlay.appendChild(titleEl); overlay.appendChild(canvas); document.body.appendChild(overlay);
                 // mark overlay on activePreview so it can be removed when stopping
                 try { activePreview = activePreview || {}; activePreview.overlayEl = overlay; } catch(e){}
+            // Prevent layout shift caused by scrollbar appearance/disappearance
+            try { document.body.classList.add('shader-overlay-open'); document.body.style.overflow = 'hidden'; } catch(e) {}
             canvas.width = OVERLAY_W; canvas.height = OVERLAY_H; canvas.style.width = Math.min(window.innerWidth * 0.95, OVERLAY_W) + 'px'; canvas.style.height = (parseFloat(canvas.style.width) * OVERLAY_H / OVERLAY_W) + 'px';
             var ov = compileAndRun(canvas, item.code || item.shader || item.src || '');
             // store overlay-specific preview separately
             try { if (activePreview) activePreview.overlayPreview = ov; } catch(e){}
             var onK = function onK(e){ if (e.key === 'Escape'){ closeOverlay(); document.removeEventListener('keydown', onK); }};
-            function closeOverlay(){ try { if (ov && ov.stop) ov.stop(); } catch(e){} try { document.removeEventListener('keydown', onK); } catch(e){} if (overlay && overlay.parentNode) overlay.parentNode.removeChild(overlay); }
+            function closeOverlay(){ try { if (ov && ov.stop) ov.stop(); } catch(e){} try { document.removeEventListener('keydown', onK); } catch(e){} if (overlay && overlay.parentNode) overlay.parentNode.removeChild(overlay); try { document.body.classList.remove('shader-overlay-open'); document.body.style.overflow = ''; } catch(e) {} }
             close.addEventListener('click', function(ev){ ev.stopPropagation(); closeOverlay(); });
             // close on single click outside the canvas (backdrop or anywhere not inside the canvas)
             overlay.addEventListener('click', function(e){ var inner = canvas; if (e.target === overlay || (inner && !inner.contains(e.target))) { closeOverlay(); } });
