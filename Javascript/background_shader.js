@@ -126,10 +126,13 @@
   const u_time = gl.getUniformLocation(program, 'u_time');
   const u_enabled = gl.getUniformLocation(program, 'u_enabled');
 
-  // start time and whether the shader is enabled (default: disabled)
+  // start time and whether the shader is enabled (default: enabled)
   let start = performance.now();
   let enabled = localStorage.getItem('bgShaderEnabled');
-  if (enabled === null) enabled = '0';
+  if (enabled === null) {
+    enabled = '1';
+    localStorage.setItem('bgShaderEnabled', '1');
+  }
   enabled = enabled === '1';
 
   // persistent global start time so animation continues across page loads
