@@ -30,32 +30,50 @@
     return -length(p)*sign(p.y);
   }
 
-  void main(){
+  void main()
+  {
     vec2 uv = vUv;
-    vec2 p = (uv - 0.5) * vec2(u_res.x/u_res.y, 1.0);
+    float aspectRatio = u_res.x / u_res.y;
+    vec2 p = (uv - 0.5) * vec2(aspectRatio, 1.0);
 
-    // background UV debug (red/yellow checker-ish bands)
-    vec2 gv = floor(uv * 8.0);
+    // background UV debug (red/yellow checker-ish bands), apply aspect ratio to keep squares, and animate with time for visual interest
+    vec2 uvAspect = uv * vec2(aspectRatio, 1.0);
+    vec2 gv = floor(uvAspect * 8.0 + (u_time * 0.03) * vec2(-1.0, 1.0));
     float checker = mod(gv.x + gv.y, 2.0);
-    vec3 debug = mix(vec3(1.0,0.85,0.2), vec3(1.0,0.25,0.25), checker);
+    vec3 debug = mix(vec3(1.0, 0.85, 0.2), vec3(1.0, 0.25, 0.25), checker);
 
     // rotating triangle
-    float angle = u_time * 0.6;
+    float angle = u_time * 0.02;
     vec2 q = p * rot(angle);
-    float s = triSDF(q * 1.2);
+    float s = triSDF(q * 2.3);
     float tri = smoothstep(0.01, -0.01, s);
-    vec3 triColor = vec3(0.3, 0.6, 1.0) * (0.6 + 0.4 * sin(u_time * 2.0));
+    
+    //vec3 triColor = vec3(0.3, 0.6, 1.0) * (0.6 + 0.2 * sin(u_time * 0.2));
+
+    // Display the bayaentric coordinates as color for fun visual interest
+    // Compute barycentric coordinates for the triangle
+    vec3 bary;
+    float k = sqrt(3.0);
+    vec2 v0 = vec2(0.0, 2.0 / k);
+    vec2 v1 = vec2(-1.0, -1.0 / k);
+    vec2 v2 = vec2(1.0, -1.0 / k);
+    float area = 0.5 * k; // Area of the equilateral triangle
+    float a = 0.5 * k * length(cross(vec3(v1 - v0, 0.0), vec3(p - v0, 0.0)));
+    float b = 0.5 * k * length(cross(vec3(v2 - v1, 0.0), vec3(p - v1, 0.0)));
+    float c = 0.5 * k * length(cross(vec3(v0 - v2, 0.0), vec3(p - v2, 0.0)));
+    bary = vec3(a, b, c) / area;
+    vec3 triColor = bary * (0.2 + 0.1 * sin(u_time * 0.2));
 
     // mix triangle over debug UVs
-    vec3 col = mix(debug * 0.15, triColor, tri);
+    vec3 color = mix(debug * 0.15, triColor, tri);
 
     // dark tint for readability
-    col *= 0.45; // overall darkening
+    color *= 0.45; // overall darkening
 
     // allow disabling via uniform
-    col = mix(vec3(0.0), col, u_enabled);
+    color = mix(vec3(0.0), color, u_enabled);
 
-    outColor = vec4(col, 1.0);
+    outColor = vec4(color, 1.0);
   }
   `;
 
