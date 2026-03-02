@@ -40,7 +40,9 @@
     vec2 uvAspect = uv * vec2(aspectRatio, 1.0);
     vec2 gv = floor(uvAspect * 8.0 + (u_time * 0.03) * vec2(-1.0, 1.0));
     float checker = mod(gv.x + gv.y, 2.0);
-    vec3 debug = mix(vec3(1.0, 0.85, 0.2), vec3(1.0, 0.25, 0.25), checker);
+    //vec3 debug = mix(vec3(1.0, 0.85, 0.2), vec3(1.0, 0.25, 0.25), checker);
+    vec3 debug = mix(vec3(0.2, 0.2, 0.2), vec3(0.1, 0.1, 0.1), checker);
+
 
     // rotating triangle
     float angle = u_time * 0.02;
@@ -50,7 +52,7 @@
     
     //vec3 triColor = vec3(0.3, 0.6, 1.0) * (0.6 + 0.2 * sin(u_time * 0.2));
 
-    // Display the bayaentric coordinates as color for fun visual interest
+    // Display the barycentric coordinates as color for fun visual interest
     // Compute barycentric coordinates for the triangle
     vec3 bary;
     float k = sqrt(3.0);
