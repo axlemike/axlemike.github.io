@@ -41,7 +41,7 @@
     vec2 gv = floor(uvAspect * 8.0 + (u_time * 0.03) * vec2(-1.0, 1.0));
     float checker = mod(gv.x + gv.y, 2.0);
     //vec3 debug = mix(vec3(1.0, 0.85, 0.2), vec3(1.0, 0.25, 0.25), checker);
-    vec3 debug = mix(vec3(0.2, 0.2, 0.2), vec3(0.1, 0.1, 0.1), checker);
+    vec3 debug = mix(vec3(0.7, 0.7, 0.7), vec3(0.0, 0.0, 0.0), checker);
 
 
     // rotating triangle
@@ -70,7 +70,7 @@
     vec3 color = mix(debug * 0.15, triColor, tri);
 
     // dark tint for readability
-    color *= 0.45; // overall darkening
+    //color *= 0.65; // overall darkening
 
     // allow disabling via uniform
     color = mix(vec3(0.0), color, u_enabled);
