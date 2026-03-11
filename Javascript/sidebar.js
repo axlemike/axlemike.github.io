@@ -231,8 +231,9 @@ function injectBackgroundUI(){
 
 
         // insert canvas and overlay at top of body so they sit behind the content
-        document.body.insertBefore(canvas, document.body.firstChild);
+        // canvas first, then overlay on top of it (same order as shadertoys.html)
         document.body.insertBefore(overlay, document.body.firstChild);
+        document.body.insertBefore(canvas, overlay);
         // set initial visibility based on preference
         canvas.style.display = isEnabled ? 'block' : 'none';
         overlay.style.display = isEnabled ? 'block' : 'none';
