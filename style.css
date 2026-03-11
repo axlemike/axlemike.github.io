@@ -113,20 +113,7 @@ footer a:hover {
 }
 
 
-@keyframes bounce {
-    0%   { transform: translateY(0); }
-    50%  { transform: translateY(-50px); }
-    100% { transform: translateY(0); }
-}
 
-/* The old keyframe animation was removed to prefer transitions for smoother fades */
-
-@keyframes backgroundChange {
-    0% { background-color: lightblue; }
-    /* 100% { background-image: url("TestBackground1.png");   background-color: transparent; background-color: black;   } */
-    100% { background-color: black; }
-    /* 100% { background-image: linear-gradient(to bottom, transparent, #837960), url("TestBackground1.png");   } */
-}
 
 /* When you mouse over the navigation links, change their color */
 .sidenav > a:hover {

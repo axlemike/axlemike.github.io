@@ -165,6 +165,10 @@
     gl.uniform1f(u_time, t);
     gl.uniform1f(u_enabled, enabled ? 1.0 : 0.0);
     gl.drawArrays(gl.TRIANGLES, 0, 3);
+    if (enabled) requestAnimationFrame(render);
+  }
+
+  function startLoop() {
     requestAnimationFrame(render);
   }
 
@@ -183,6 +187,7 @@
       const overlay = document.getElementById('bg-overlay');
       if(overlay) overlay.style.display = enabled ? 'block' : 'none';
       updateToggle();
+      if (enabled) startLoop();
     });
   }
 
@@ -191,6 +196,6 @@
   const overlayEl = document.getElementById('bg-overlay');
   if(overlayEl) overlayEl.style.display = enabled ? 'block' : 'none';
 
-  requestAnimationFrame(render);
+  if (enabled) startLoop();
 
 })();

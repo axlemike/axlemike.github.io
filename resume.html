@@ -7,11 +7,6 @@
     <title>Resume</title>
     <style>
         /* Add your custom CSS here */
-          /* Keep resume page backgrounds transparent (inherit site theme)
-              and ensure text is readable on the site's dark background. */
-          body { background-color: transparent; color: #e6e6e6; }
-          .ResumeEntry, .resumeHeader { color: #e6e6e6; background: transparent; }
-          li resume, li credits, p { background: transparent; color: inherit; }
     </style>
 </head>
 <body>
@@ -23,15 +18,14 @@
             <!-- sidebar injected from sidebar.html -->
         </nav>
     </header>
-    <!-- <iframe src='https://1drv.ms/w/s!Al5QdoSxmipahIhxPq_mcun1oU_Bbw' width='1366px' height='1023px' frameborder='0'>This is an embedded <a target='_blank' href='http://office.com'>Microsoft Office</a> document, powered by <a target='_blank' href='http://office.com/webapps'>Office Online</a>.</iframe>
-    
-     -->
+
+    <main class="main">
     <div class="resumeHeader">About</div>
     <div class="ResumeEntry">
         <br/>
-        <li><resume>Team leadership and communication.</resume></li>
-        <li><resume>Proficient in C++, C, C#, HLSL and GLSL programming languages.</resume></li>
-        <li><resume>Experience with DirectX, Vulkan, GDK/XDK, Unreal, OpenGL, PIX, Razor, RenderDoc, Perforce, Git, ImGui, Bink, Scaleform/Scaleform Video, XNA, C++/CLI, Objective-C, Havok Vision Engine, Unity, iOS, LUA/Swig, 68000 assembly, MYSQL and Python.</resume></li>
+        <li>Team leadership and communication.</li>
+        <li>Proficient in C++, C, C#, HLSL and GLSL programming languages.</li>
+        <li>Experience with DirectX, Vulkan, GDK/XDK, Unreal, OpenGL, PIX, Razor, RenderDoc, Perforce, Git, ImGui, Bink, Scaleform/Scaleform Video, XNA, C++/CLI, Objective-C, Havok Vision Engine, Unity, iOS, LUA/Swig, 68000 assembly, MYSQL and Python.</li>
         <br/>
     </div>
 
@@ -39,11 +33,12 @@
     <div class="ResumeEntry">
         <br/>
     </div>
+    </main>
     
     <!-- Footer section -->
     <footer>
         <br/>
-        <p>© <script>document.write(window.SITE_YEAR||2026)</script> Alexander Lemke. All rights reserved.</p>
+        <p>© <span class="copyright-year">2026</span> Alexander Lemke. All rights reserved.</p>
         <ul>
             <li><a href="https://github.com/axlemike">GitHub</a></li>
             <li><a href="https://www.linkedin.com/in/axlemke">LinkedIn</a></li>
