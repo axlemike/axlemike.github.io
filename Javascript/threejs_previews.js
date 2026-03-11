@@ -149,7 +149,8 @@
                     loop();
 
                     var onK = function onK(e){ if (e.key === 'Escape'){ if (overlay && overlay._threeCleanup) overlay._threeCleanup(); } };
-                    function internalCleanup(){ try { if (raf) cancelAnimationFrame(raf); } catch(e){}
+                    document.body.style.overflow = 'hidden';
+                    function internalCleanup(){ document.body.style.overflow = ''; try { if (raf) cancelAnimationFrame(raf); } catch(e){}
                         try { renderer.dispose(); } catch(e){}
                         try { renderer.domElement.removeEventListener('pointerdown', onPointerDown); } catch(e){}
                         try { renderer.domElement.removeEventListener('pointermove', onPointerMove); } catch(e){}

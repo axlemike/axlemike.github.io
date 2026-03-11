@@ -842,7 +842,8 @@
             // store overlay-specific preview separately
             try { if (activePreview) activePreview.overlayPreview = ov; } catch(e){}
             var onK = function onK(e){ if (e.key === 'Escape'){ closeOverlay(); document.removeEventListener('keydown', onK); }};
-            function closeOverlay(){ try { if (ov && ov.stop) ov.stop(); } catch(e){} try { document.removeEventListener('keydown', onK); } catch(e){} if (overlay && overlay.parentNode) overlay.parentNode.removeChild(overlay); }
+            document.body.style.overflow = 'hidden';
+            function closeOverlay(){ document.body.style.overflow = ''; try { if (ov && ov.stop) ov.stop(); } catch(e){} try { document.removeEventListener('keydown', onK); } catch(e){} if (overlay && overlay.parentNode) overlay.parentNode.removeChild(overlay); }
             close.addEventListener('click', function(ev){ ev.stopPropagation(); closeOverlay(); });
             // close on single click outside the canvas (backdrop or anywhere not inside the canvas)
             overlay.addEventListener('click', function(e){ var inner = canvas; if (e.target === overlay || (inner && !inner.contains(e.target))) { closeOverlay(); } });
